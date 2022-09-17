@@ -20,7 +20,7 @@ Overview of contents:
 
 - [Predict Customer Churn Using Production-Level Code](#predict-customer-churn-using-production-level-code)
 	- [Project Description](#project-description)
-	- [Files Description](#files-description)
+	- [Files and Workflow Description](#files-and-workflow-description)
 	- [How to Use This](#how-to-use-this)
 		- [Installation](#installation)
 		- [Running the Scripts](#running-the-scripts)
@@ -50,32 +50,39 @@ The used [Credit Card Customers dataset from Kaggle](https://www.kaggle.com/data
 - Number of features after feature engineering is carried out: 19.
 - Modelling used on the data: logistic regression and random forests with grid search.
 
-## Files Description
+## Files and Workflow Description
 
-The notebooks present in the repository are:
+All the research work of the project is contained in the notebook [`churn_notebook.ipynb`](churn_notebook.ipynb); in particular simplified implementations of the typical data processing and modeling tasks are performed:
 
-- [`Guide.ipynb`](Guide.ipynb): the project guideline (from Udacity; uninteresting)
-- [`churn_notebook.ipynb`](churn_notebook.ipynb): the provided data analysis and modeling, which covers:
-	- Dataset loading 
-	- Exploratory Data Analysis (EDA) and Data Cleaning
-	- Feature Engineering (FE)
-	- Training: Random Forest and Logistic Regression models are fit
-	- Generation of classification report plots
+- Dataset loading 
+- Exploratory Data Analysis (EDA) and Data Cleaning
+- Feature Engineering (FE)
+- Training: Random Forest and Logistic Regression models are fit and the models are persisted as pickles.
+- Generation of classification report plots.
 
-In the project, the code in [`churn_notebook.ipynb`](churn_notebook.ipynb) is modified for a production environment and transferred to the following modules:
+The code from [`churn_notebook.ipynb`](churn_notebook.ipynb) is modified for a production environment and transferred to the following modules:
 
-- [`churn_library.py`](churn_library.py): this file contains the refactored code from [`churn_notebook.ipynb`](churn_notebook.ipynb).
+- [`churn_library.py`](churn_library.py): this file contains the refactored and transformed code from [`churn_notebook.ipynb`](churn_notebook.ipynb).
 - [`churn_script_logging_and_tests.py`](churn_script_logging_and_tests.py): this file applies tests to the functions defined in [`churn_library.py`](churn_library.py).
 
-The following sequence diagram shows the workflow in the main file [`churn_library.py`](churn_library.py):
+The `main()` function in [`churn_library.py`](churn_library.py) calls two functions:
 
-![Sequence Diagram of churn_library.py](./images/../pics/sequencediagram.jpeg)
+1. `modeling()`, which performs the EDA and generates the inference artifacts (the model/pipeline),
+2. and `inference()`, which shows how the inference artifacts need to be used to perform a prediction.
 
-In addition, those files and folders are also present in the repository:
+The following sequence diagram shows the workflow in the `modeling()` function from [`churn_library.py`](churn_library.py):
+
+![Sequence Diagram of modeling() in churn_library.py](./images/../pics/sequencediagram.jpeg)
+
+Similarly, the following sequence diagram shows the workflow in the `inference()` function from [`churn_library.py`](churn_library.py):
+
+![Sequence Diagram of inference() in churn_library.py](./images/../pics/sequencediagram.jpeg)
+
+Finally, these files and folders are also present in the repository:
 
 - `requirements_py*.txt`: dependencies to be installed (see section below)
 - `README.md`: this documentation file
-- `Customer_Churn_Guide.md`: a summary of `Guide.ipynb` and the project requirements defined by Udacity
+- `Instructions.md`: a summary of `Guide.ipynb` and the project requirements defined by Udacity
 - `data/`: folder where the dataset is stored
 - `images/`: folder for the EDA and classification report images
 - `models/`: folder where the generated models are stored as pickle objects
