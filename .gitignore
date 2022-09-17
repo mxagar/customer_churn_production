@@ -3,3 +3,5 @@ __pycache__
 .pytest_cache
 .DS_Store
 .vscode
+eda_fe_summary
+python_manual.txt

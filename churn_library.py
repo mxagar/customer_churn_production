@@ -15,7 +15,7 @@ Clean code principles are guaranteed:
 - Modularized code
 - PEP8 conventions
 - Error handling
-- Testing is carried in the companion file: churn_script_logging_and_test.py
+- Testing is carried in the companion file: test_churn_library.py
 
 PEP8 conventions checked with:
 
@@ -24,7 +24,7 @@ PEP8 conventions checked with:
 
 The file can be run stand-alone:
 
->> python customer_churn.py
+>> python churn_library.py
 
 The script expects the proper dataset to be located in `./data`
 
@@ -32,6 +32,7 @@ Additionally:
 
 - The produced models are stored in `./models`
 - The plots of the EDA and the classification results are stored in `./images`
+- All other artifacts are stored in `./artifacts`
 
 Author: Mikel Sagardia
 Date: 2022-06-08
@@ -434,11 +435,14 @@ def train_models(X_train, X_test, y_train, y_test):
     # Save plot of feature importance
     feature_importance_plot(cv_rfc, X_train, image_output_path)
 
-def modeling():
+def run_training():
     '''
-    Execute the complete model/pipeline generation.
-    In a real context we would pass the path to the dataset
-    and 
+    Execute the complete model/pipeline generation:
+    - Import dataset
+    - Exploratory Data Analysis (EDA)
+    - Data Cleaning and Feature Engineering
+    - Define and train models
+    In a real context we would pass the path to the dataset.
     
     Input:
             None    
@@ -466,13 +470,13 @@ def modeling():
     print("Trainig...")
     train_models(X_train, X_test, y_train, y_test)
 
-def inference():
+def run_inference():
     '''
     Execute the an exemplary inference.
     In a real context we would pass the path of the data to be inferred.
     Additionally, model serving requires having the model/pipeline in memory
     and answering to requests, which is not done here.
-    The artifacts generated in the function modeling() are used here.
+    The artifacts generated in the function run_training() are used here.
     
     Input:
             None    
@@ -483,5 +487,5 @@ def inference():
 
 if __name__ == "__main__":
 
-    modeling()
-    inference()
+    run_training()
+    run_inference()

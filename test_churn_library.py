@@ -21,13 +21,13 @@ Clean code principles are guaranteed in the project
 
 PEP8 conventions checked with:
 
->> pylint churn_script_logging_and_tests.py.py # 7.86/10
->> autopep8 churn_script_logging_and_tests.py.py
+>> pylint test_churn_library.py.py # 7.86/10
+>> autopep8 test_churn_library.py.py
 
 Since the filename of the tester module does not have a prefix `test_`,
 we need to notify pytest the filename to collect all tests:
 
->> pytest churn_script_logging_and_tests.py
+>> pytest test_churn_library.py
 
 To install pytest:
 
@@ -40,6 +40,7 @@ Additionally:
 - Any produced models are stored in `./models`
 - Any plots of the EDA and the classification results are stored in `./images/`
 - Logs are stored in `./logs/`
+- All other artifacts are stored in `./artifacts/`
 
 Author: Mikel Sagardia
 Date: 2022-06-08
@@ -360,11 +361,11 @@ if __name__ == "__main__":
     # Without logging, we would run
     # >> pytest
     # or, in this case, since the file does not start with test_*
-    # >> pytest churn_script_logging_and_tests.py
+    # >> pytest test_churn_library.py
     # However, logging does not occur when invoking pytest that way.
     # If we want to have logging with pytest, we either configure the TOML / INI
     # or we define the line below in __main__ and execute the tests with
-    # >> python churn_script_logging_and_tests.py
+    # >> python test_churn_library.py
     # Sources:
     # https://stackoverflow.com/questions/4673373/logging-within-pytest-tests
     # https://stackoverflow.com/questions/31793540/how-to-save-pytests-results-logs-to-a-file
