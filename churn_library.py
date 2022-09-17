@@ -435,7 +435,7 @@ def train_models(X_train, X_test, y_train, y_test):
     # Save plot of feature importance
     feature_importance_plot(cv_rfc, X_train, image_output_path)
 
-def run_training():
+def run_analysis_and_training():
     '''
     Execute the complete model/pipeline generation:
     - Import dataset
@@ -487,5 +487,5 @@ def run_inference():
 
 if __name__ == "__main__":
 
-    run_training()
+    run_analysis_and_training()
     run_inference()
