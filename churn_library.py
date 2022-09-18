@@ -96,11 +96,12 @@ def import_data(pth, save_sample=True):
 
     return None
 
-def perform_eda(data):
-    '''Performs EDA on df and saves figures to `images/` folder.
+def perform_eda(data, output_path):
+    '''Performs EDA on df and saves figures to the output_path folder.
     
     Input:
             df (pandas.DataFrame): dataset
+            output_path (string): path where report images are saved
 
     Output:
             None
@@ -108,7 +109,7 @@ def perform_eda(data):
     # General paramaters
     figsize = (20,15)
     dpi = 200
-    rootpath = './images/eda'
+    rootpath = output_path # './images/eda'
 
     # New Churn variable: 1 Yes, 0 No
     data['Churn'] = data['Attrition_Flag'].apply(lambda val:
@@ -181,7 +182,7 @@ def encoder_helper(data, category_lst, response="Churn"):
     return data, cat_columns_encoded
 
 
-def perform_feature_engineering(data, response="Churn"):
+def perform_feature_engineering(data, response="Churn", artifact_path="./artifacts", train=True):
     '''
     Perform Feature Engineering: 
     - basic cleaning,
@@ -195,16 +196,16 @@ def perform_feature_engineering(data, response="Churn"):
     Additionally, note that all this could be packed into a sklearn Pipeline.
     
     Input:
-            df (pandas.DataFrame): dataset
-            response (str): string of response name
+            df (data frame): dataset
+            response (string): string of response name
                 optional argument that could be used
-                for naming variables or index y column]
+                for naming variables or index y column
+            artifact_path (string): path where artifacts are located
+            train (bool): whether transformer fitting needs to be performed
 
     Output:
-            X_train: X training data
-            X_test: X testing data
-            y_train: y training data
-            y_test: y testing data
+            X (data frame): X features 
+            y (data frame / series): y target
     '''
     
     
@@ -276,17 +277,13 @@ def perform_feature_engineering(data, response="Churn"):
         print(f"Wrong number of columns: {X.shape[1]} != 19")
         raise err
 
-    # Train/Test split
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size= 0.3, random_state=42)
-
-    return X_train, X_test, y_train, y_test
-
+    return X, y
 
 def classification_report_image(y_train,
                                 y_test,
                                 y_train_preds,
                                 y_test_preds,
-                                outputpath):
+                                output_path):
     '''
     Produces classification report for training and testing results and stores report as image
     in images folder.
@@ -299,6 +296,7 @@ def classification_report_image(y_train,
             y_test_preds_lr (np.array): test preds. from logistic regression
             y_test_preds_lr (np.array): test preds. from logistic regression
             y_test_preds_rf (np.array): test preds. from random forest
+            output_path (string): path to store the result figures
 
     Output:
             None
@@ -323,7 +321,7 @@ def classification_report_image(y_train,
     plt.text(0.01, 0.7, str(classification_report(y_train, y_train_preds_rf)), {
              'fontsize': 10}, fontproperties='monospace')  # approach improved by OP -> monospace!
     plt.axis('off')
-    fig.savefig(outputpath+'/rf_classification_report.png', dpi=dpi)
+    fig.savefig(output_path+'/rf_classification_report.png', dpi=dpi)
 
     # Logistic regression model: Classification report
     fig = plt.figure(figsize=figsize)
@@ -336,16 +334,17 @@ def classification_report_image(y_train,
     plt.text(0.01, 0.7, str(classification_report(y_test, y_test_preds_lr)), {
              'fontsize': 10}, fontproperties='monospace')  # approach improved by OP -> monospace!
     plt.axis('off')
-    fig.savefig(outputpath+'/lr_classification_report.png', dpi=dpi)
+    fig.savefig(output_path+'/lr_classification_report.png', dpi=dpi)
 
-def roc_curve_plot(models, X_test, y_test, outputpath):
+def roc_curve_plot(models, X_test, y_test, output_path):
     '''
     Creates and stores the feature importances in pth
     
     Input:
             models (objects): trained models
-            X_test (numpy.array): test split features to compute ROC curves
-            y_test (numpy.array): test split target to compute ROC curves
+            X_test (data frame): test split features to compute ROC curves
+            y_test (data frame / series): test split target to compute ROC curves
+            output_path (string): path to store the result figure
 
     Output:
             None
@@ -363,16 +362,16 @@ def roc_curve_plot(models, X_test, y_test, outputpath):
     lrc_plot = plot_roc_curve(lrc, X_test, y_test)
     rfc_plot = plot_roc_curve(rfc, X_test, y_test, ax=ax, alpha=0.8)
     lrc_plot.plot(ax=ax, alpha=0.8)
-    fig.savefig(outputpath+'/roc_plots.png', dpi=dpi)
+    fig.savefig(output_path+'/roc_plots.png', dpi=dpi)
 
-def feature_importance_plot(model, X_data, output_pth):
+def feature_importance_plot(model, X_data, output_path):
     '''
     Creates and stores the feature importances in pth.
     
     Input:
-            model: model object containing feature_importances_
-            X_data: pandas dataframe of X values
-            output_pth: path to store the figure
+            model (model object): model object containing feature_importances_
+            X_data (data frame): pandas dataframe of X values
+            output_path (string): path to store the result figure
 
     Output:
             None
@@ -399,19 +398,22 @@ def feature_importance_plot(model, X_data, output_pth):
     plt.xticks(range(X_data.shape[1]), names, rotation=90)
 
     # Save plot
-    fig.savefig(output_pth+'/feature_importance.png', dpi=600)
+    fig.savefig(output_path+'/feature_importance.png', dpi=600)
 
-def train_models(X_train, X_test, y_train, y_test):
+def train_models(X_train, X_test, y_train, y_test, eval_output_path="./images/results", model_output_path="./models"):
     '''
     Train, store model results: images + scores, and store models.
     
     Input:
-            X_train: X training data
-            X_test: X testing data
-            y_train: y training data
-            y_test: y testing data
+            X_train (data frame): X training data
+            X_test (data frame): X testing data
+            y_train (data frame / series): y training data
+            y_test (data frame / series): y testing data
+            eval_output_path (string): path where evaluation report images are stored
+            model_output_path (string): path where models are stored
+            
     Output:
-              None
+            None
     '''
     # Grid search
     rfc = RandomForestClassifier(random_state=42)
@@ -439,9 +441,9 @@ def train_models(X_train, X_test, y_train, y_test):
     y_test_preds_lr = lrc.predict(X_test)
 
     # Save best model
-    joblib.dump(cv_rfc.best_estimator_, './models/rfc_model_best.pkl')
-    joblib.dump(cv_rfc, './models/rfc_model.pkl')
-    joblib.dump(lrc, './models/logistic_model.pkl')
+    joblib.dump(cv_rfc.best_estimator_, model_output_path+'/rfc_model_best.pkl')
+    joblib.dump(cv_rfc, model_output_path+'/rfc_model.pkl')
+    joblib.dump(lrc, model_output_path+'/logistic_model.pkl')
 
     #try:
     #    # Check models can be loaded
@@ -450,15 +452,12 @@ def train_models(X_train, X_test, y_train, y_test):
     #except FileNotFoundError:
     #    print("Models could not be saved!")
 
-    # Define image output path
-    image_output_path = "./images/results"
-
     # Save classification report plots
     classification_report_image(y_train,
                                 y_test,
                                 (y_train_preds_lr,y_train_preds_rf),
                                 (y_test_preds_lr,y_test_preds_rf),
-                                image_output_path)
+                                eval_output_path)
 
     # Pack models for the ROC curve computation
     models = (lrc, cv_rfc.best_estimator_)
@@ -467,10 +466,10 @@ def train_models(X_train, X_test, y_train, y_test):
     roc_curve_plot(models,
                    X_test,
                    y_test,
-                   image_output_path)
+                   eval_output_path)
 
     # Save plot of feature importance
-    feature_importance_plot(cv_rfc, X_train, image_output_path)
+    feature_importance_plot(cv_rfc, X_train, eval_output_path)
 
 def run_analysis_and_training():
     '''
@@ -487,25 +486,41 @@ def run_analysis_and_training():
             None
     '''    
     # Load dataset
+    # If not specified explicitly, 
+    # a sample with the first 10 entries (_sample.csv)
+    # is saved for testing inference
     print("Loading dataset...")
-    FILEPATH = "./data/bank_data.csv"
-    df = import_data(FILEPATH)
+    DATASET_PATH = "./data/bank_data.csv"
+    df = import_data(DATASET_PATH, save_sample=True)
 
     # Perform Exploratory Data Analysis (EDA)
+    # EDA report images are saved to `images/eda`
     print("Performing EDA...")
-    perform_eda(df)
+    EDA_OUTPUT_PATH = "./images/eda"
+    perform_eda(df, EDA_OUTPUT_PATH)
 
     # Perform Feature Engineering
+    # Artifacts like transformation objects, detected features & co.
+    # are saved to `./artifacts`
     print("Performing Feature Engineering...")
-    RESPONSE = "Churn"
-    X_train, X_test, y_train, y_test = perform_feature_engineering(
-        df, response=RESPONSE)
+    RESPONSE = "Churn" # Target name
+    ARTIFACT_PATH = "./artifacts"
+    X, y = perform_feature_engineering(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=True)
+
+    # Train/Test split
+    print("Performing Train/Test Split...")
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size= 0.3, random_state=42)
 
     # Train the models
     # Models are saved to `models/`
-    # and reports saved to `images/`
+    # and report images saved to `images/results`
     print("Trainig...")
-    train_models(X_train, X_test, y_train, y_test)
+    EVAL_OUTPUT_PATH = "./images/results"
+    MODEL_OUTPUT_PATH = "./models"
+    train_models(X_train, X_test,
+                 y_train, y_test,
+                 eval_output_path=EVAL_OUTPUT_PATH,
+                 model_output_path=MODEL_OUTPUT_PATH)
 
 def run_inference():
     '''
@@ -513,16 +528,36 @@ def run_inference():
     In a real context we would pass the path of the data to be inferred.
     Additionally, model serving requires having the model/pipeline in memory
     and answering to requests, which is not done here.
-    The artifacts generated in the function run_training() are used here.
+    The artifacts generated in the function run_analysis_and_training() are used here.
     
     Input:
             None    
     Output:
             None
     '''    
-    pass
+    # Load sample dataset
+    print("Loading exemplary dataset...")
+    DATASET_PATH = "./data/bank_data_sample.csv"
+    df = import_data(DATASET_PATH, save_sample=False)
+
+    # Load model pipeline
+
+    # Perform Feature Engineering
+    # Artifacts like transformation objects, detected features & co.
+    # are read from `./artifacts`
+    print("Performing Feature Engineering...")
+    RESPONSE = "Churn" # Target name
+    ARTIFACT_PATH = "./artifacts"
+    X, _ = perform_feature_engineering(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=False)
+
+    # Predict
 
 if __name__ == "__main__":
 
+    # Pipeline 1: Data Analysis and Modeling
+    # Dataset is loaded and analyzed; models and artifacts are created.
     run_analysis_and_training()
+    
+    # Pipeline 2: Exemplary Inference
+    # Sample dataset, trained models and artifacts are loaded; an exemplary inference is carried out.
     run_inference()
