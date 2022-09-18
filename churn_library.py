@@ -60,21 +60,34 @@ from sklearn.model_selection import GridSearchCV
 
 from sklearn.metrics import plot_roc_curve, classification_report
 
+from transformations import MeanImputer, ModeImputer, CategoryEncoder
+
 # Set library/module options
 os.environ['QT_QPA_PLATFORM']='offscreen'
 matplotlib.use('TkAgg')
 sns.set()
 
-def import_data(pth):
-    '''Returns dataframe for the csv found at pth.
+def import_data(pth, save_sample=True):
+    '''Returns dataframe for the CSV found at pth.
+    For training save_sample=True; for inference save_sample=False.
+    The previously saved data sample contains the first 10 entries
+    and it can be used to test the inference.
 
-    input:
+    Input:
             pth (str): a path to the csv
-    output:
+            save_sample (bool): whether a small testing sample needs to be saved
+            
+    Output:
             df (pandas.DataFrame): pandas dataframe with the dataset
     '''
     try:
+        # Read file
         data = pd.read_csv(pth)
+        # Save sample for testing inference
+        if save_sample:
+            pth_sample = pth.split('.csv')[0]+'_sample.csv'
+            data_sample = data.iloc[:10,:]
+            data_sample.to_csv(pth_sample,sep=',', header=True, index=False)
         return data
     except (FileNotFoundError, NameError):
         print("File not found!")
@@ -170,21 +183,32 @@ def encoder_helper(data, category_lst, response="Churn"):
 
 def perform_feature_engineering(data, response="Churn"):
     '''
-    Perform Feature Engineering: basic cleaning, select/drop features, encode categoricals, split.
+    Perform Feature Engineering: 
+    - basic cleaning,
+    - select/drop features,
+    - encode categoricals,
+    - data checks, 
+    - split.
+    
+    This is a simplified pipeline; in a real context some of the steps
+    would be in their own function or even module. 
+    Additionally, note that all this could be packed into a sklearn Pipeline.
     
     Input:
-              df (pandas.DataFrame): dataset
-              response (str): string of response name
-                [optional argument that could be used
+            df (pandas.DataFrame): dataset
+            response (str): string of response name
+                optional argument that could be used
                 for naming variables or index y column]
 
     Output:
-              X_train: X training data
-              X_test: X testing data
-              y_train: y training data
-              y_test: y testing data
+            X_train: X training data
+            X_test: X testing data
+            y_train: y training data
+            y_test: y testing data
     '''
-    # New Churn variable: 1 Yes, 0 No
+    
+    
+    # New Churn variable (target): 1 Yes, 0 No
     try:
         assert 'Attrition_Flag' in data.columns
         data[response] = data['Attrition_Flag'].apply(
@@ -195,44 +219,57 @@ def perform_feature_engineering(data, response="Churn"):
     except KeyError as err:
         print("Response key must be a string!")
         raise err
-
-    # Traget variable
-    y = data[response]
-
+    
     # Drop unnecessary columns
+    cols_drop = ['Attrition_Flag', 'Unnamed: 0', 'CLIENTNUM'] # , response]
     try:
-        data.drop('Attrition_Flag', axis=1, inplace=True)
-        data.drop('Unnamed: 0', axis=1, inplace=True)
-        data.drop('CLIENTNUM', axis=1, inplace=True)
-        #data.drop(response, axis=1, inplace=True)
+        for col in cols_drop:
+            data.drop(col, axis=1, inplace=True)    
     except KeyError as err:
         print("Missing columns in the dataframe.")
         raise err
 
+    # Drop duplicates
+
     # Automatically detect categorical columns
-    category_lst = list(data.select_dtypes(['object']).columns)
+    cols_cat = list(data.select_dtypes(['object']).columns)
+
+    # Automatically detect numerical columns
+    cols_num = list(data.select_dtypes(['int64','float64']).columns)
+    
+    # Handle missing values
+    # - target: remove entry
+    # - numerical: mean
+    # - categorical: mode
 
     # Encode categorical variables as category ratios
     cat_columns_encoded = []
-    data, cat_columns_encoded = encoder_helper(data, category_lst, response)
+    data, cat_columns_encoded = encoder_helper(data, cols_cat, response)
 
-    # Drop target 
+    # Store target in y
+    # and drop target from X <- data.
+    # We cannot drop it beforehand because the encoding of the categoricals
+    # needs to use y
+    y = data[response]
     data.drop(response, axis=1, inplace=True)
 
-    # Automatically detect numerical columns    
-    quant_columns = list(data.select_dtypes(['int64','float64']).columns)
-    # Features: categorcial + numerical
-    # but all identified as numerical now, because we encoded them so!
-    # So, WRONG: keep_cols = quant_columns + cat_columns_encoded
+    # Automatically detect numerical columns, AGAIN
+    cols_num = list(data.select_dtypes(['int64','float64']).columns)
+
+    # Features: categorical + numerical
+    # BUT all identified as numerical now,
+    # because we encoded them so!
     for col in cat_columns_encoded:
         try:
-            assert col in quant_columns
+            assert col in cols_num
         except AssertionError as err:
             print(f"Column {col} not found in set of numerical columns.")
             raise err
-    keep_cols = quant_columns
-    X = data[keep_cols]
+    cols_keep = cols_num
+    # Build X
+    X = data[cols_keep]
 
+    # Basic data checks (deterministic)
     try:
         assert X.shape[1] == 19
     except AssertionError as err:
