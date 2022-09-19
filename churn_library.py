@@ -4,12 +4,24 @@ Credit Card Customers dataset from Kaggle:
 
 https://www.kaggle.com/datasets/sakshigoyal7/credit-card-customers/code
 
-These are the steps which are carried out:
-- The dataset is loaded
-- Exploratory Data Analysis (EDA)
-- Feature Engineering (FE)
-- Training: Random Forest and Logistic Regression models are fit
-- Classification report plots
+The file is divided into two functions contained in main() that run two
+typical pipelines which share some steps:
+1. Model generation pipeline, with these steps:
+    - The dataset is loaded
+    - Exploratory Data Analysis (EDA)
+    - Data Processing: Cleaning and Feature Engineering (FE)
+    - Train/Test split
+    - Training: Random Forest and Logistic Regression models are fit
+    - Classification report plots
+2. Exemplary inference pipeline, with these steps:
+    - Exemplary dataset is loaded (generated in pipeline 1)
+    - Model pipeline is loaded (generated in pipeline 1)
+    - Data Processing: Cleaning and Feature Engineering (FE) (same as in pipeline 1)
+    - Prediction
+
+Note that the first pipeline needs to have been executed
+before executing the second one; however, once the first has been executed
+we can execute only the second one (i.e., we can comment out the first).
 
 Clean code principles are guaranteed:
 - Modularized code
@@ -76,7 +88,6 @@ def import_data(pth, save_sample=True):
     Input:
             pth (str): a path to the csv
             save_sample (bool): whether a small testing sample needs to be saved
-            
     Output:
             df (pandas.DataFrame): pandas dataframe with the dataset
     '''
@@ -98,11 +109,10 @@ def import_data(pth, save_sample=True):
 
 def perform_eda(data, output_path):
     '''Performs EDA on df and saves figures to the output_path folder.
-    
+
     Input:
             df (pandas.DataFrame): dataset
             output_path (string): path where report images are saved
-
     Output:
             None
     '''
@@ -110,11 +120,12 @@ def perform_eda(data, output_path):
     # Check that all columns to be analyzed are present in the dataset
     cols_analyze = ['Attrition_Flag', 'Customer_Age', 'Marital_Status', 'Total_Trans_Ct']
     try:
-        assert cols_analyze in data.columns
+        for col in cols_analyze:
+            assert col in data.columns
     except AssertionError as err:
         print(f"EDA: Missing columns in the dataset.")
         raise err
-    
+
     # General paramaters
     figsize = (20,15)
     dpi = 200
@@ -152,19 +163,19 @@ def perform_eda(data, output_path):
 
 def perform_data_processing(data, response="Churn", artifact_path="./artifacts", train=True):
     '''
-    Perform basic Data Processing and Feature Engineering: 
+    Perform basic Data Processing and Feature Engineering:
     - basic cleaning,
     - select/drop features,
     - encode categoricals,
     - data validation.
-    
+
     This function is called for generating the model and for the inference,
     because for both cases, the same data preparation is required.
     However, in the inference case, previously trained transformers are loaded.
     This function is a simplified pipeline; in a real context some of the steps
-    would be in their own function or even module. 
+    would be in their own function or even module.
     Additionally, note that all this could be packed into a sklearn Pipeline.
-    
+
     Input:
             df (data frame): dataset
             response (string): string of response name
@@ -172,12 +183,10 @@ def perform_data_processing(data, response="Churn", artifact_path="./artifacts",
                 for naming variables or index y column
             artifact_path (string): path where artifacts are located
             train (bool): whether transformer fitting needs to be performed
-
     Output:
-            X (data frame): X features 
+            X (data frame): X features
             y (data frame / series): y target
     '''
-    
     processing_params = dict()
     if not train:
         # Load dataset processing parameters from training
@@ -206,12 +215,12 @@ def perform_data_processing(data, response="Churn", artifact_path="./artifacts",
     except KeyError as err:
         print("Response key must be a string!")
         raise err
-    
+
     # Drop unnecessary columns
     cols_drop = [col_org_response, 'Unnamed: 0', 'CLIENTNUM'] # , response]
     try:
         for col in cols_drop:
-            data.drop(col, axis=1, inplace=True)    
+            data.drop(col, axis=1, inplace=True)
     except KeyError as err:
         print("Missing columns in the dataframe.")
         raise err
@@ -223,7 +232,7 @@ def perform_data_processing(data, response="Churn", artifact_path="./artifacts",
     cols_cat = list(data.select_dtypes(['object']).columns)
     # Automatically detect numerical columns
     cols_num = list(data.select_dtypes(['int64','float64']).columns)
-        
+
     if train:
         # Persist categorical and numerical column names
         processing_params['cols_cat'] = cols_cat
@@ -241,7 +250,7 @@ def perform_data_processing(data, response="Churn", artifact_path="./artifacts",
                 except AssertionError as err:
                     print(f"Column {col} not found in set of columns from training.")
                     raise err
-    
+
     # Handle missing values
     # - target: remove entries is target is NA
     # - numerical: mean
@@ -329,7 +338,7 @@ def classification_report_image(y_train,
     '''
     Produces classification report for training and testing results and stores report as image
     in images folder.
-    
+
     Input:
             y_train (pandas.DataFrame): training response values
             y_test (pandas.DataFrame):  test response values
@@ -339,7 +348,6 @@ def classification_report_image(y_train,
             y_test_preds_lr (np.array): test preds. from logistic regression
             y_test_preds_rf (np.array): test preds. from random forest
             output_path (string): path to store the result figures
-
     Output:
             None
     '''
@@ -381,13 +389,12 @@ def classification_report_image(y_train,
 def roc_curve_plot(models, X_test, y_test, output_path):
     '''
     Creates and stores the feature importances in pth
-    
+
     Input:
             models (objects): trained models
             X_test (data frame): test split features to compute ROC curves
             y_test (data frame / series): test split target to compute ROC curves
             output_path (string): path to store the result figure
-
     Output:
             None
     '''
@@ -409,12 +416,11 @@ def roc_curve_plot(models, X_test, y_test, output_path):
 def feature_importance_plot(model, X_data, output_path):
     '''
     Creates and stores the feature importances in pth.
-    
+
     Input:
             model (model object): model object containing feature_importances_
             X_data (data frame): pandas dataframe of X values
             output_path (string): path to store the result figure
-
     Output:
             None
     '''
@@ -442,10 +448,22 @@ def feature_importance_plot(model, X_data, output_path):
     # Save plot
     fig.savefig(output_path+'/feature_importance.png', dpi=600)
 
-def train_and_evaluate_models(X_train, X_test, y_train, y_test, eval_output_path="./images/results", model_output_path="./models"):
+def train_and_evaluate_models(X_train, X_test, y_train, y_test,
+                              eval_output_path="./images/results",
+                              model_output_path="./models"):
     '''
-    Train, store model results: images + scores, and store models.
-    
+    Train and evaluate models and store models + evaluation results: images + scores.
+    Instead of a model, a pipeline is stored,
+    which contains some basic transformations (scaling),
+    even though these might not be necessary for the model.
+
+    Several models are trained, stored and evaluated:
+    - Logistic regression
+    - Random forests (with a grid search using cross-validation)
+
+    Note, however, that the transformations done in perform_data_processing()
+    are obligatory: that function should precede the current.
+
     Input:
             X_train (data frame): X training data
             X_test (data frame): X testing data
@@ -453,7 +471,6 @@ def train_and_evaluate_models(X_train, X_test, y_train, y_test, eval_output_path
             y_test (data frame / series): y testing data
             eval_output_path (string): path where evaluation report images are stored
             model_output_path (string): path where models are stored
-            
     Output:
             None
     '''
@@ -487,13 +504,6 @@ def train_and_evaluate_models(X_train, X_test, y_train, y_test, eval_output_path
     joblib.dump(cv_rfc, model_output_path+'/rfc_model.pkl')
     joblib.dump(lrc, model_output_path+'/logistic_model.pkl')
 
-    #try:
-    #    # Check models can be loaded
-    #    rfc_model = joblib.load('./models/rfc_model_best.pkl')
-    #    lr_model = joblib.load('./models/logistic_model.pkl')
-    #except FileNotFoundError:
-    #    print("Models could not be saved!")
-
     # Save classification report plots
     classification_report_image(y_train,
                                 y_test,
@@ -513,25 +523,44 @@ def train_and_evaluate_models(X_train, X_test, y_train, y_test, eval_output_path
     # Save plot of feature importance
     feature_importance_plot(cv_rfc, X_train, eval_output_path)
 
+def load_model_pipeline(model_path):
+    '''Load model pipeline from path.'''
+    try:
+        # Load model with file and check this is successful
+        model = joblib.load(model_path)
+        return model
+    except FileNotFoundError:
+        print("Model pipeline not found!")
+        return None
+
+def predict(model_pipeline, X):
+    '''Use the model/pipeline to score the feature vectors.'''
+    preds = model_pipeline.predict(X)
+
+    return preds
+
 def run_analysis_and_training():
     '''Execute the complete model/pipeline generation:
     - Import dataset
     - Exploratory Data Analysis (EDA)
     - Data Cleaning and Feature Engineering
     - Define and train models
-    In a real context we would pass the path to the dataset.
-    
+
+    This is an example function that carries out all the model generation pipeline.
+    In a real context we would use this template function to write our own,
+    passing all the paths and configuration parameters from a config file.
+
     Input:
-            None    
+            None
     Output:
             None
-    '''    
+    '''
     # Load dataset
-    # If not specified explicitly, 
+    # If not specified explicitly,
     # a sample with the first 10 entries (_sample.csv)
     # is saved for testing inference
-    print("Loading dataset...")
     DATASET_PATH = "./data/bank_data.csv"
+    print(f"Loading dataset...\t{DATASET_PATH}")
     df = import_data(DATASET_PATH, save_sample=True)
 
     # Perform Exploratory Data Analysis (EDA)
@@ -543,7 +572,8 @@ def run_analysis_and_training():
     # Perform Feature Engineering
     # Artifacts like transformation objects, detected features & co.
     # are saved to `./artifacts`
-    print("Performing Feature Engineering...")
+    # IMPORTANT: train=True
+    print("Performing Data Processing...")
     RESPONSE = "Churn" # Target name
     ARTIFACT_PATH = "./artifacts"
     X, y = perform_data_processing(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=True)
@@ -565,39 +595,58 @@ def run_analysis_and_training():
 
 def run_inference():
     '''Execute the an exemplary inference.
-    In a real context we would pass the path of the data to be inferred.
+    The artifacts generated in the function run_analysis_and_training() are used here.
+
+    This is an example function that runs the inference steps / pipeline.
+    In a real context we would use this template function to write our own,
+    passing all the paths and configuration parameters from a config file.
     Additionally, model serving requires having the model/pipeline in memory
     and answering to requests, which is not done here.
-    The artifacts generated in the function run_analysis_and_training() are used here.
-    
+
     Input:
-            None    
+            None
     Output:
             None
-    '''    
+    '''
     # Load sample dataset
-    print("Loading exemplary dataset...")
     DATASET_PATH = "./data/bank_data_sample.csv"
+    print(f"Loading exemplary dataset...\t{DATASET_PATH}")
     df = import_data(DATASET_PATH, save_sample=False)
 
     # Load model pipeline
+    MODEL_FILENAME = "./models/rfc_model_best.pkl"
+    print(f"Loading model pipeline...\t{MODEL_FILENAME}")
+    model_pipeline = load_model_pipeline(MODEL_FILENAME)
 
     # Perform Feature Engineering
     # Artifacts like transformation objects, detected features & co.
     # are read from `./artifacts`
-    print("Performing Feature Engineering...")
+    # IMPORTANT: train=False
+    print("Performing Data Processing...")
     RESPONSE = "Churn" # Target name
     ARTIFACT_PATH = "./artifacts"
     X, _ = perform_data_processing(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=False)
 
     # Predict
+    print("Inference...")
+    y_pred = predict(model_pipeline, X)
+    print("\nSample index and prediction value pairs:")
+    print(list(zip(list(df.index),list(y_pred))))
 
 if __name__ == "__main__":
+    '''Two pipelines are executed one after the other:
+    (1) model generation/training
+    (2) and exemplary inference.
+
+    If the models have been generated (pipeline 1), we can comment its call out
+    and simply run the inference.
+    '''
 
     # Pipeline 1: Data Analysis and Modeling
     # Dataset is loaded and analyzed; models and artifacts are created.
     run_analysis_and_training()
-    
+
     # Pipeline 2: Exemplary Inference
-    # Sample dataset, trained models and artifacts are loaded; an exemplary inference is carried out.
+    # Sample dataset, trained models and artifacts are loaded;
+    # an exemplary inference is carried out.
     run_inference()
