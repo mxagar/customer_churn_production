@@ -419,6 +419,8 @@ def roc_curve_plot(models, X_test, y_test, output_path):
 
 def feature_importance_plot(model, X_data, output_path, filename_label):
     '''Creates and stores the feature importances in pth.
+    Note that the function assumes there is no addition of features in the model pipeline,
+    e.g., with PolynomialFeatures(); if so, the current function must be modified.
 
     Input:
             model (model object): model object containing feature_importances_
