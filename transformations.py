@@ -76,8 +76,10 @@ class CategoryEncoder(BaseEstimator, TransformerMixin):
         X = X.copy()
         # Loop over all feature and replace categories by their
         # pre-compted ratio values
+        self.encoded_categoricals_ = []
         for feature in self.features:
-            new_feature = feature + "_" self.target
+            new_feature = feature + "_" + self.target
+            self.encoded_categoricals_.append(new_feature)
             X[new_feature] = X[feature]
             X[new_feature].replace(self.imputer_dict_[feature], inplace=True)
         return X
