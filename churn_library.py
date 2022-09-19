@@ -51,6 +51,7 @@ Date: 2022-06-08
 '''
 
 import os
+import time
 #os.environ['QT_QPA_PLATFORM']='offscreen'
 import joblib
 
@@ -63,11 +64,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 #sns.set()
 
-#from sklearn.preprocessing import normalize
+from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.preprocessing import StandardScaler
+
 from sklearn.model_selection import GridSearchCV
 
 from sklearn.metrics import plot_roc_curve, classification_report
@@ -82,7 +86,7 @@ sns.set()
 def import_data(pth, save_sample=True):
     '''Returns dataframe for the CSV found at pth.
     For training save_sample=True; for inference save_sample=False.
-    The previously saved data sample contains the first 10 entries
+    The previously saved data sample contains some entries of the training dataset
     and it can be used to test the inference.
 
     Input:
@@ -425,7 +429,7 @@ def feature_importance_plot(model, X_data, output_path, filename_label):
             None
     '''
     # Calculate feature importances
-    importances = model.feature_importances_
+    importances = model['model'].feature_importances_
     # Sort feature importances in descending order
     indices = np.argsort(importances)[::-1]
 
@@ -456,10 +460,12 @@ def train_models(X_train,
     Instead of a model, a pipeline is stored,
     which contains some basic transformations (scaling, etc.).
 
-    Several models are trained, stored and evaluated:
+    Several models are trained and stored:
     - Logistic regression
-    - Random forests (with a grid search using cross-validation)
+    - Random forests
 
+    A grid search using cross-validation is carried out for each model.
+ 
     Note, however, that the transformations done in perform_data_processing()
     are obligatory: that function should precede the current.
 
@@ -471,100 +477,61 @@ def train_models(X_train,
     Output:
             models (objects tuple): best trained models, using grid search and cross-validation
     '''
-    # Model 1: Random Forest Classifier
-    rf_pipe = Pipeline([
-        ("polynomial_features", PolynomialFeatures()),
-        ("scaler", StandardScaler()),
-        ("rfc", RandomForestClassifier(random_state=42))])
-
-    # Model 2: Logistic Regression
-    # Note: if the default 'lbfgs' fails to converge, use another
+    # Model 1: Logistic Regression
+    # Note: if the default solver='lbfgs' fails to converge, use another
     # https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
     lr_pipe = Pipeline([
         ("polynomial_features", PolynomialFeatures()),        
         ("scaler", StandardScaler()),
-        ("lrc", LogisticRegression(solver='lbfgs', max_iter=3000))])
+        ("model", LogisticRegression(solver='liblinear', random_state=42, max_iter=3000))])
 
-    # Grid Search: Random Forest (Model 1)
-    params_grid_rf = {
-        'polynomial_features__degree': [1, 2, 3],
-        'rfc__n_estimators': [100, 200, 500],
-        'rfc__max_features': ['auto', 'sqrt'],
-        'rfc__max_depth': [4, 5, 100],
-        'rfc__criterion': ['gini', 'entropy']
-    }
-    rf_pipe_cv = GridSearchCV(estimator=rf_pipe, param_grid=params_grid_rf, cv=5)
-    rf_pipe_cv.fit(X_train, y_train)
-    # Get best random forest model/pipeline
-    rf_pipe_cv_best = rf_pipe_cv.best_estimator_
+    # Model 2: Random Forest Classifier
+    # Note: scaling is really not necessary for random forests...
+    # Polynomial features removed to plot feature importances
+    rf_pipe = Pipeline([
+        #("polynomial_features", PolynomialFeatures()),
+        ("scaler", StandardScaler()),
+        ("model", RandomForestClassifier(random_state=42))])
 
-    # Grid Search: Logistic Regression (Model 2)
+    # Grid Search: Logistic Regression (Model 1)
+    # Since we use polynomial features,
+    # we cannot easily plot feature importances in the current implementation
     params_grid_lr = {
-        'polynomial_features__degree': [1, 2, 3],
-        'lrc__alpha': np.geomspace(1e-3, 20, 30) # logarithmic jumps
+        'polynomial_features__degree': [1, 2],
+        'model__penalty': ['l1', 'l2'],
+        'model__C': np.geomspace(1e-3, 10, 6) # logarithmic jumps
     }
     lr_pipe_cv = GridSearchCV(estimator=lr_pipe, param_grid=params_grid_lr, cv=5)
+    t1 = time.time()
     lr_pipe_cv.fit(X_train, y_train)
     # Get best logistic regression model/pipeline
     lr_pipe_cv_best = lr_pipe_cv.best_estimator_
+    t2 = time.time()
+    print(f"- Logistic regression trained with grid search and cross validation in {t2-t1:.2f} sec.")
+
+    # Grid Search: Random Forest (Model 2)
+    params_grid_rf = {
+        #'polynomial_features__degree': [1], # [1, 2]
+        'model__n_estimators': [200, 500],
+        'model__max_features': ['auto', 'sqrt'],
+        'model__max_depth': [4, 5, 100],
+        'model__criterion': ['gini', 'entropy']
+    }
+    rf_pipe_cv = GridSearchCV(estimator=rf_pipe, param_grid=params_grid_rf, cv=5)
+    t1 = time.time()
+    rf_pipe_cv.fit(X_train, y_train)
+    # Get best random forest model/pipeline
+    rf_pipe_cv_best = rf_pipe_cv.best_estimator_
+    t2 = time.time()
+    print(f"- Random forest trained with grid search and cross validation in {t2-t1:.2f} sec.")
 
     # Save best models/pipelines
-    joblib.dump(rf_pipe_cv_best, model_output_path+'/random_forest_model_pipe.pkl')
     joblib.dump(lr_pipe_cv_best, model_output_path+'/logistic_regression_model_pipe.pkl')
+    joblib.dump(rf_pipe_cv_best, model_output_path+'/random_forest_model_pipe.pkl')
     
     models = (lr_pipe_cv_best, rf_pipe_cv_best)
 
     return models
-"""
-    # Grid search
-    rfc = RandomForestClassifier(random_state=42)
-    # Use a different solver if the default 'lbfgs' fails to converge
-    # Reference:
-    # https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
-    lrc = LogisticRegression(solver='lbfgs', max_iter=3000)
-
-    param_grid = {
-        'n_estimators': [200, 500],
-        'max_features': ['auto', 'sqrt'],
-        'max_depth' : [4,5,100],
-        'criterion' :['gini', 'entropy']
-    }
-
-    cv_rfc = GridSearchCV(estimator=rfc, param_grid=param_grid, cv=5)
-    cv_rfc.fit(X_train, y_train)
-
-    lrc.fit(X_train, y_train)
-
-    y_train_preds_rf = cv_rfc.best_estimator_.predict(X_train)
-    y_test_preds_rf = cv_rfc.best_estimator_.predict(X_test)
-
-    y_train_preds_lr = lrc.predict(X_train)
-    y_test_preds_lr = lrc.predict(X_test)
-
-    # Save best model
-    joblib.dump(cv_rfc.best_estimator_, model_output_path+'/rfc_model_best.pkl')
-    joblib.dump(cv_rfc, model_output_path+'/rfc_model.pkl')
-    joblib.dump(lrc, model_output_path+'/logistic_model.pkl')
-
-    # Save classification report plots
-    classification_report_image(y_train,
-                                y_test,
-                                (y_train_preds_lr,y_train_preds_rf),
-                                (y_test_preds_lr,y_test_preds_rf),
-                                eval_output_path)
-
-    # Pack models for the ROC curve computation
-    models = (lrc, cv_rfc.best_estimator_)
-
-    # Save ROC curve plots
-    roc_curve_plot(models,
-                   X_test,
-                   y_test,
-                   eval_output_path)
-
-    # Save plot of feature importance
-    feature_importance_plot(cv_rfc, X_train, eval_output_path)
-"""
 
 def evaluate_models(X_train,
                     X_test,
@@ -609,10 +576,12 @@ def evaluate_models(X_train,
                    eval_output_path)
 
     # Save plots of feature importance
+    # IMPORTANT: If polynomial features are used,
+    # feature importances don't work in the current implementation!
     filename_label = "random_forest"
     feature_importance_plot(rfc, X_train, eval_output_path, filename_label)
-    filename_label = "logistic_regression"
-    feature_importance_plot(lrc, X_train, eval_output_path, filename_label)
+    #filename_label = "logistic_regression"
+    #feature_importance_plot(lrc, X_train, eval_output_path, filename_label)
     
 def load_model_pipeline(model_path):
     '''Loads model pipeline from path.'''
@@ -646,17 +615,19 @@ def run_training():
     Output:
             None
     '''
+    print("\n### TRAINING PIPELINE ###")
+
     # Load dataset
     # If not specified explicitly,
     # a sample with the first 10 entries (_sample.csv)
     # is saved for testing inference
     DATASET_PATH = "./data/bank_data.csv"
-    print(f"Loading dataset...\t{DATASET_PATH}")
+    print(f"\nLoading dataset...\t{DATASET_PATH}")
     df = import_data(DATASET_PATH, save_sample=True)
 
     # Perform Exploratory Data Analysis (EDA)
     # EDA report images are saved to `images/eda`
-    print("Performing EDA...")
+    print("\nPerforming EDA...")
     EDA_OUTPUT_PATH = "./images/eda"
     perform_eda(df, EDA_OUTPUT_PATH)
 
@@ -664,18 +635,18 @@ def run_training():
     # Artifacts like transformation objects, detected features & co.
     # are saved to `./artifacts`
     # IMPORTANT: train=True
-    print("Performing Data Processing...")
+    print("\nPerforming Data Processing...")
     RESPONSE = "Churn" # Target name
     ARTIFACT_PATH = "./artifacts"
     X, y = perform_data_processing(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=True)
 
     # Train/Test split
-    print("Performing Train/Test Split...")
+    print("\nPerforming Train/Test Split...")
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size= 0.3, random_state=42)
 
     # Train the models
     # Models are saved to `models/`
-    print("Trainig...")
+    print("\nTrainig...")
     MODEL_OUTPUT_PATH = "./models"
     models = train_models(X_train,
                           y_train,
@@ -683,7 +654,7 @@ def run_training():
 
     # Evaluate the models
     # Report images saved to `images/results`
-    print("Trainig...")
+    print("\nEvaluating...")
     EVAL_OUTPUT_PATH = "./images/results"
     evaluate_models(X_train,
                     X_test,
@@ -707,29 +678,31 @@ def run_inference():
     Output:
             None
     '''
+    print("\n### INFERENCE PIPELINE ###")
+
     # Load sample dataset
     DATASET_PATH = "./data/bank_data_sample.csv"
-    print(f"Loading exemplary dataset...\t{DATASET_PATH}")
+    print(f"\nLoading exemplary dataset...\t{DATASET_PATH}")
     df = import_data(DATASET_PATH, save_sample=False)
 
     # Load model pipeline
-    MODEL_FILENAME = "./models/rfc_model_best.pkl"
-    print(f"Loading model pipeline...\t{MODEL_FILENAME}")
+    MODEL_FILENAME = "./models/random_forest_model_pipe.pkl"
+    print(f"\nLoading model pipeline...\t{MODEL_FILENAME}")
     model_pipeline = load_model_pipeline(MODEL_FILENAME)
 
     # Perform Feature Engineering
     # Artifacts like transformation objects, detected features & co.
     # are read from `./artifacts`
     # IMPORTANT: train=False
-    print("Performing Data Processing...")
+    print("\nPerforming Data Processing...")
     RESPONSE = "Churn" # Target name
     ARTIFACT_PATH = "./artifacts"
     X, _ = perform_data_processing(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=False)
 
     # Predict
-    print("Inference...")
+    print("\nInference...")
     y_pred = predict(model_pipeline, X)
-    print("\nSample index and prediction value pairs:")
+    print("Sample index and prediction value pairs:")
     print(list(zip(list(df.index),list(y_pred))))
 
 if __name__ == "__main__":
