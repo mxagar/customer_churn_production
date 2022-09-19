@@ -1,0 +1,1 @@
+This folder contains the images generated during the exploratory data analysis (EDA) and the model evaluation.
