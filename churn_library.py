@@ -106,6 +106,15 @@ def perform_eda(data, output_path):
     Output:
             None
     '''
+
+    # Check that all columns to be analyzed are present in the dataset
+    cols_analyze = ['Attrition_Flag', 'Customer_Age', 'Marital_Status', 'Total_Trans_Ct']
+    try:
+        assert cols_analyze in data.columns
+    except AssertionError as err:
+        print(f"EDA: Missing columns in the dataset.")
+        raise err
+    
     # General paramaters
     figsize = (20,15)
     dpi = 200
@@ -141,57 +150,18 @@ def perform_eda(data, output_path):
     sns.heatmap(data.corr(), annot=False, cmap='Dark2_r', linewidths = 2)
     fig.savefig(rootpath+'/corr_heatmap.png', dpi=dpi)
 
-
-def encoder_helper(data, category_lst, response="Churn"):
-    '''Helper function to turn each categorical column into a new column with
-    proportion of churn for each category - associated with cell 15.
-    
-    Input:
-            df (pandas.DataFrame): dataset
-            category_lst (list of str): list of columns that contain
-                categorical features
-            response (str): string of response name [optional argument
-                that could be used for naming variables or index y column]
-
-    Output:
-            df (pandas.DataFrame): pandas dataframe with new columns
-            cat_columns_encoded (list of str): names of new columns
+def perform_data_processing(data, response="Churn", artifact_path="./artifacts", train=True):
     '''
-
-    # Names of new encoded columns
-    cat_columns_encoded = []
-
-    # Automatically detect categorical columns
-    if not category_lst:
-        category_lst = list(data.select_dtypes(['object']).columns)
-
-    # Loop over all categorical columns
-    # Create new variable which contains the churn ratio
-    # associated with each category
-    for col in category_lst:
-        col_lst = []
-        col_groups = data.groupby(col).mean()[response]
-
-        for val in data[col]:
-            col_lst.append(col_groups.loc[val])
-
-        col_encoded_name = col + "_" + response
-        cat_columns_encoded.append(col_encoded_name)
-        data[col_encoded_name] = col_lst
-
-    return data, cat_columns_encoded
-
-
-def perform_feature_engineering(data, response="Churn", artifact_path="./artifacts", train=True):
-    '''
-    Perform Feature Engineering: 
+    Perform basic Data Processing and Feature Engineering: 
     - basic cleaning,
     - select/drop features,
     - encode categoricals,
-    - data checks, 
-    - split.
+    - data validation.
     
-    This is a simplified pipeline; in a real context some of the steps
+    This function is called for generating the model and for the inference,
+    because for both cases, the same data preparation is required.
+    However, in the inference case, previously trained transformers are loaded.
+    This function is a simplified pipeline; in a real context some of the steps
     would be in their own function or even module. 
     Additionally, note that all this could be packed into a sklearn Pipeline.
     
@@ -208,21 +178,37 @@ def perform_feature_engineering(data, response="Churn", artifact_path="./artifac
             y (data frame / series): y target
     '''
     
-    
+    processing_params = dict()
+    if not train:
+        # Load dataset processing parameters from training
+        # - cols_cat
+        # - cols_num
+        # - num_features
+        # - mean_imputer
+        # - mode_imputer
+        # - category_encoder
+        try:
+            # Check models can be loaded
+            processing_params = joblib.load(artifact_path+'/processing_params.pkl')
+        except FileNotFoundError:
+            print("The processing parameters from previous training not found!")
+
     # New Churn variable (target): 1 Yes, 0 No
+    col_org_response = 'Attrition_Flag'
+    response_value_org_negative = "Existing Customer"
     try:
-        assert 'Attrition_Flag' in data.columns
-        data[response] = data['Attrition_Flag'].apply(
-            lambda val: 0 if val == "Existing Customer" else 1)
+        assert col_org_response in data.columns
+        data[response] = data[col_org_response].apply(
+            lambda val: 0 if val == response_value_org_negative else 1)
     except AssertionError as err:
-        print("The df must contain the column 'Attrition_Flag'.")
+        print(f"The df must contain the column '{col_org_response}'.")
         raise err
     except KeyError as err:
         print("Response key must be a string!")
         raise err
     
     # Drop unnecessary columns
-    cols_drop = ['Attrition_Flag', 'Unnamed: 0', 'CLIENTNUM'] # , response]
+    cols_drop = [col_org_response, 'Unnamed: 0', 'CLIENTNUM'] # , response]
     try:
         for col in cols_drop:
             data.drop(col, axis=1, inplace=True)    
@@ -231,21 +217,63 @@ def perform_feature_engineering(data, response="Churn", artifact_path="./artifac
         raise err
 
     # Drop duplicates
+    data = data.drop_duplicates()
 
     # Automatically detect categorical columns
     cols_cat = list(data.select_dtypes(['object']).columns)
-
     # Automatically detect numerical columns
     cols_num = list(data.select_dtypes(['int64','float64']).columns)
+        
+    if train:
+        # Persist categorical and numerical column names
+        processing_params['cols_cat'] = cols_cat
+        processing_params['cols_num'] = cols_num
+    else:
+        # Basic data check (deterministic):
+        # Test that the automatically detected columns
+        # match the ones detected during training
+        col_lists = (cols_cat, cols_num)
+        col_list_names = ('cols_cat', 'cols_num')
+        for i in range(len(col_lists)):
+            for col in col_lists[i]:
+                try:
+                    assert col in processing_params[col_list_names[i]]
+                except AssertionError as err:
+                    print(f"Column {col} not found in set of columns from training.")
+                    raise err
     
     # Handle missing values
-    # - target: remove entry
+    # - target: remove entries is target is NA
     # - numerical: mean
     # - categorical: mode
+    data.dropna(subset=[response], axis=0, inplace=True)
+    if train:
+        # Create imputers, fit, transform data and persist
+        mean_imputer = MeanImputer(variables=cols_num)
+        mode_imputer = ModeImputer(variables=cols_cat)
+        data = mean_imputer.fit_transform(data)
+        data = mode_imputer.fit_transform(data)
+        processing_params['mean_imputer'] = mean_imputer
+        processing_params['mode_imputer'] = mode_imputer
+    else:
+        # Get trained imputers and transform data
+        mean_imputer = processing_params['mean_imputer']
+        mode_imputer = processing_params['mode_imputer']
+        data = mean_imputer.transform(data)
+        data = mode_imputer.transform(data)
 
     # Encode categorical variables as category ratios
-    cat_columns_encoded = []
-    data, cat_columns_encoded = encoder_helper(data, cols_cat, response)
+    cols_cat_encoded = []
+    if train:
+        # Create encoder, fit, transform data and persist
+        category_encoder = CategoryEncoder(features=cols_cat, target=response)
+        data = category_encoder.fit_transform(data)
+        processing_params['category_encoder'] = category_encoder
+    else:
+        # Get trained encoder and transform data
+        category_encoder = processing_params['category_encoder']
+        data = category_encoder.transform(data)
+        cols_cat_encoded = category_encoder.encoded_categoricals_
 
     # Store target in y
     # and drop target from X <- data.
@@ -255,27 +283,41 @@ def perform_feature_engineering(data, response="Churn", artifact_path="./artifac
     data.drop(response, axis=1, inplace=True)
 
     # Automatically detect numerical columns, AGAIN
-    cols_num = list(data.select_dtypes(['int64','float64']).columns)
+    cols_num_encoded = list(data.select_dtypes(['int64','float64']).columns)
 
     # Features: categorical + numerical
     # BUT all identified as numerical now,
     # because we encoded them so!
-    for col in cat_columns_encoded:
+    for col in cols_cat_encoded:
         try:
-            assert col in cols_num
+            assert col in cols_num_encoded
         except AssertionError as err:
             print(f"Column {col} not found in set of numerical columns.")
             raise err
-    cols_keep = cols_num
+    cols_keep = cols_num_encoded
     # Build X
     X = data[cols_keep]
 
-    # Basic data checks (deterministic)
-    try:
-        assert X.shape[1] == 19
-    except AssertionError as err:
-        print(f"Wrong number of columns: {X.shape[1]} != 19")
-        raise err
+    # Basic data check (deterministic): Number of final features
+    if train:
+        processing_params['num_features'] = X.shape[1] # 19
+    else:
+        num_features = processing_params['num_features']
+        try:
+            assert X.shape[1] == num_features
+        except AssertionError as err:
+            print(f"Wrong number of columns: {X.shape[1]} != {str(num_features)}")
+            raise err
+
+    if train:
+        # Persist dataset processing parameters from training
+        # - cols_cat
+        # - cols_num
+        # - num_features
+        # - mean_imputer
+        # - mode_imputer
+        # - category_encoder
+        joblib.dump(processing_params, artifact_path+'/processing_params.pkl')
 
     return X, y
 
@@ -394,13 +436,13 @@ def feature_importance_plot(model, X_data, output_path):
     # Add bars
     plt.bar(range(X_data.shape[1]), importances[indices])
 
-    # Add feature names as x-axis labelss
+    # Add feature names as x-axis labels
     plt.xticks(range(X_data.shape[1]), names, rotation=90)
 
     # Save plot
     fig.savefig(output_path+'/feature_importance.png', dpi=600)
 
-def train_models(X_train, X_test, y_train, y_test, eval_output_path="./images/results", model_output_path="./models"):
+def train_and_evaluate_models(X_train, X_test, y_train, y_test, eval_output_path="./images/results", model_output_path="./models"):
     '''
     Train, store model results: images + scores, and store models.
     
@@ -472,8 +514,7 @@ def train_models(X_train, X_test, y_train, y_test, eval_output_path="./images/re
     feature_importance_plot(cv_rfc, X_train, eval_output_path)
 
 def run_analysis_and_training():
-    '''
-    Execute the complete model/pipeline generation:
+    '''Execute the complete model/pipeline generation:
     - Import dataset
     - Exploratory Data Analysis (EDA)
     - Data Cleaning and Feature Engineering
@@ -505,7 +546,7 @@ def run_analysis_and_training():
     print("Performing Feature Engineering...")
     RESPONSE = "Churn" # Target name
     ARTIFACT_PATH = "./artifacts"
-    X, y = perform_feature_engineering(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=True)
+    X, y = perform_data_processing(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=True)
 
     # Train/Test split
     print("Performing Train/Test Split...")
@@ -517,14 +558,13 @@ def run_analysis_and_training():
     print("Trainig...")
     EVAL_OUTPUT_PATH = "./images/results"
     MODEL_OUTPUT_PATH = "./models"
-    train_models(X_train, X_test,
-                 y_train, y_test,
-                 eval_output_path=EVAL_OUTPUT_PATH,
-                 model_output_path=MODEL_OUTPUT_PATH)
+    train_and_evaluate_models(X_train, X_test,
+                              y_train, y_test,
+                              eval_output_path=EVAL_OUTPUT_PATH,
+                              model_output_path=MODEL_OUTPUT_PATH)
 
 def run_inference():
-    '''
-    Execute the an exemplary inference.
+    '''Execute the an exemplary inference.
     In a real context we would pass the path of the data to be inferred.
     Additionally, model serving requires having the model/pipeline in memory
     and answering to requests, which is not done here.
@@ -548,7 +588,7 @@ def run_inference():
     print("Performing Feature Engineering...")
     RESPONSE = "Churn" # Target name
     ARTIFACT_PATH = "./artifacts"
-    X, _ = perform_feature_engineering(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=False)
+    X, _ = perform_data_processing(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=False)
 
     # Predict
 
