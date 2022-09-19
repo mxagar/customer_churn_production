@@ -161,9 +161,11 @@ def perform_eda(data, output_path):
     sns.heatmap(data.corr(), annot=False, cmap='Dark2_r', linewidths = 2)
     fig.savefig(rootpath+'/corr_heatmap.png', dpi=dpi)
 
-def perform_data_processing(data, response="Churn", artifact_path="./artifacts", train=True):
-    '''
-    Perform basic Data Processing and Feature Engineering:
+def perform_data_processing(data,
+                            response="Churn",
+                            artifact_path="./artifacts",
+                            train=True):
+    '''Performs basic Data Processing and Feature Engineering:
     - basic cleaning,
     - select/drop features,
     - encode categoricals,
@@ -335,8 +337,7 @@ def classification_report_image(y_train,
                                 y_train_preds,
                                 y_test_preds,
                                 output_path):
-    '''
-    Produces classification report for training and testing results and stores report as image
+    '''Produces classification report for training and testing results and stores report as image
     in images folder.
 
     Input:
@@ -387,8 +388,7 @@ def classification_report_image(y_train,
     fig.savefig(output_path+'/lr_classification_report.png', dpi=dpi)
 
 def roc_curve_plot(models, X_test, y_test, output_path):
-    '''
-    Creates and stores the feature importances in pth
+    '''Creates and stores the feature importances in pth
 
     Input:
             models (objects): trained models
@@ -413,19 +413,19 @@ def roc_curve_plot(models, X_test, y_test, output_path):
     lrc_plot.plot(ax=ax, alpha=0.8)
     fig.savefig(output_path+'/roc_plots.png', dpi=dpi)
 
-def feature_importance_plot(model, X_data, output_path):
-    '''
-    Creates and stores the feature importances in pth.
+def feature_importance_plot(model, X_data, output_path, filename_label):
+    '''Creates and stores the feature importances in pth.
 
     Input:
             model (model object): model object containing feature_importances_
             X_data (data frame): pandas dataframe of X values
             output_path (string): path to store the result figure
+            filename_label (string): label to add to the plot filename
     Output:
             None
     '''
     # Calculate feature importances
-    importances = model.best_estimator_.feature_importances_
+    importances = model.feature_importances_
     # Sort feature importances in descending order
     indices = np.argsort(importances)[::-1]
 
@@ -446,16 +446,15 @@ def feature_importance_plot(model, X_data, output_path):
     plt.xticks(range(X_data.shape[1]), names, rotation=90)
 
     # Save plot
-    fig.savefig(output_path+'/feature_importance.png', dpi=600)
+    fig.savefig(output_path+'/feature_importance_'+filename_label+'.png', dpi=600)
 
-def train_and_evaluate_models(X_train, X_test, y_train, y_test,
-                              eval_output_path="./images/results",
-                              model_output_path="./models"):
-    '''
-    Train and evaluate models and store models + evaluation results: images + scores.
+def train_models(X_train,
+                 y_train,
+                 eval_output_path="./images/results",
+                 model_output_path="./models"):
+    '''Trains and stores models.
     Instead of a model, a pipeline is stored,
-    which contains some basic transformations (scaling),
-    even though these might not be necessary for the model.
+    which contains some basic transformations (scaling, etc.).
 
     Several models are trained, stored and evaluated:
     - Logistic regression
@@ -466,14 +465,57 @@ def train_and_evaluate_models(X_train, X_test, y_train, y_test,
 
     Input:
             X_train (data frame): X training data
-            X_test (data frame): X testing data
             y_train (data frame / series): y training data
-            y_test (data frame / series): y testing data
             eval_output_path (string): path where evaluation report images are stored
             model_output_path (string): path where models are stored
     Output:
-            None
+            models (objects tuple): best trained models, using grid search and cross-validation
     '''
+    # Model 1: Random Forest Classifier
+    rf_pipe = Pipeline([
+        ("polynomial_features", PolynomialFeatures()),
+        ("scaler", StandardScaler()),
+        ("rfc", RandomForestClassifier(random_state=42))])
+
+    # Model 2: Logistic Regression
+    # Note: if the default 'lbfgs' fails to converge, use another
+    # https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+    lr_pipe = Pipeline([
+        ("polynomial_features", PolynomialFeatures()),        
+        ("scaler", StandardScaler()),
+        ("lrc", LogisticRegression(solver='lbfgs', max_iter=3000))])
+
+    # Grid Search: Random Forest (Model 1)
+    params_grid_rf = {
+        'polynomial_features__degree': [1, 2, 3],
+        'rfc__n_estimators': [100, 200, 500],
+        'rfc__max_features': ['auto', 'sqrt'],
+        'rfc__max_depth': [4, 5, 100],
+        'rfc__criterion': ['gini', 'entropy']
+    }
+    rf_pipe_cv = GridSearchCV(estimator=rf_pipe, param_grid=params_grid_rf, cv=5)
+    rf_pipe_cv.fit(X_train, y_train)
+    # Get best random forest model/pipeline
+    rf_pipe_cv_best = rf_pipe_cv.best_estimator_
+
+    # Grid Search: Logistic Regression (Model 2)
+    params_grid_lr = {
+        'polynomial_features__degree': [1, 2, 3],
+        'lrc__alpha': np.geomspace(1e-3, 20, 30) # logarithmic jumps
+    }
+    lr_pipe_cv = GridSearchCV(estimator=lr_pipe, param_grid=params_grid_lr, cv=5)
+    lr_pipe_cv.fit(X_train, y_train)
+    # Get best logistic regression model/pipeline
+    lr_pipe_cv_best = lr_pipe_cv.best_estimator_
+
+    # Save best models/pipelines
+    joblib.dump(rf_pipe_cv_best, model_output_path+'/random_forest_model_pipe.pkl')
+    joblib.dump(lr_pipe_cv_best, model_output_path+'/logistic_regression_model_pipe.pkl')
+    
+    models = (lr_pipe_cv_best, rf_pipe_cv_best)
+
+    return models
+"""
     # Grid search
     rfc = RandomForestClassifier(random_state=42)
     # Use a different solver if the default 'lbfgs' fails to converge
@@ -522,9 +564,58 @@ def train_and_evaluate_models(X_train, X_test, y_train, y_test,
 
     # Save plot of feature importance
     feature_importance_plot(cv_rfc, X_train, eval_output_path)
+"""
 
+def evaluate_models(X_train,
+                    X_test,
+                    y_train,
+                    y_test,
+                    models,
+                    eval_output_path="./images/results"):
+    '''Evaluates the models.
+    The models must have been already created by train_models()
+    and are passed to the current function.
+
+    Input:
+            X_train (data frame): X training data
+            X_test (data frame): X test data
+            y_train (data frame / series): y training data
+            y_test (data frame / series): y test data
+            models (tuple of objects): trained models/pipelines
+            eval_output_path (string): path where evaluation report images are stored
+    Output:
+            None
+    '''
+    # Unpack models
+    lrc, rfc = models
+    
+    # Predict target for train & test features
+    y_train_preds_rf = rfc.predict(X_train)
+    y_test_preds_rf = rfc.predict(X_test)
+    y_train_preds_lr = lrc.predict(X_train)
+    y_test_preds_lr = lrc.predict(X_test)
+    
+    # Generate and save classification report plots
+    classification_report_image(y_train,
+                                y_test,
+                                (y_train_preds_lr,y_train_preds_rf),
+                                (y_test_preds_lr,y_test_preds_rf),
+                                eval_output_path)
+
+    # Save ROC curve plots
+    roc_curve_plot(models, # (lrc, rfc)
+                   X_test,
+                   y_test,
+                   eval_output_path)
+
+    # Save plots of feature importance
+    filename_label = "random_forest"
+    feature_importance_plot(rfc, X_train, eval_output_path, filename_label)
+    filename_label = "logistic_regression"
+    feature_importance_plot(lrc, X_train, eval_output_path, filename_label)
+    
 def load_model_pipeline(model_path):
-    '''Load model pipeline from path.'''
+    '''Loads model pipeline from path.'''
     try:
         # Load model with file and check this is successful
         model = joblib.load(model_path)
@@ -534,16 +625,16 @@ def load_model_pipeline(model_path):
         return None
 
 def predict(model_pipeline, X):
-    '''Use the model/pipeline to score the feature vectors.'''
+    '''Uses the model/pipeline to score the feature vectors.'''
     preds = model_pipeline.predict(X)
 
     return preds
 
-def run_analysis_and_training():
-    '''Execute the complete model/pipeline generation:
+def run_training():
+    '''Executes the complete model/pipeline generation:
     - Import dataset
     - Exploratory Data Analysis (EDA)
-    - Data Cleaning and Feature Engineering
+    - Data Cleaning and Feature Engineering (i.e., data processing)
     - Define and train models
 
     This is an example function that carries out all the model generation pipeline.
@@ -584,18 +675,26 @@ def run_analysis_and_training():
 
     # Train the models
     # Models are saved to `models/`
-    # and report images saved to `images/results`
+    print("Trainig...")
+    MODEL_OUTPUT_PATH = "./models"
+    models = train_models(X_train,
+                          y_train,
+                          model_output_path=MODEL_OUTPUT_PATH)
+
+    # Evaluate the models
+    # Report images saved to `images/results`
     print("Trainig...")
     EVAL_OUTPUT_PATH = "./images/results"
-    MODEL_OUTPUT_PATH = "./models"
-    train_and_evaluate_models(X_train, X_test,
-                              y_train, y_test,
-                              eval_output_path=EVAL_OUTPUT_PATH,
-                              model_output_path=MODEL_OUTPUT_PATH)
-
+    evaluate_models(X_train,
+                    X_test,
+                    y_train,
+                    y_test,
+                    models,
+                    eval_output_path=EVAL_OUTPUT_PATH)
+    
 def run_inference():
-    '''Execute the an exemplary inference.
-    The artifacts generated in the function run_analysis_and_training() are used here.
+    '''Executes an exemplary inference.
+    The artifacts generated in the function run_training() are used here.
 
     This is an example function that runs the inference steps / pipeline.
     In a real context we would use this template function to write our own,
@@ -644,7 +743,7 @@ if __name__ == "__main__":
 
     # Pipeline 1: Data Analysis and Modeling
     # Dataset is loaded and analyzed; models and artifacts are created.
-    run_analysis_and_training()
+    run_training()
 
     # Pipeline 2: Exemplary Inference
     # Sample dataset, trained models and artifacts are loaded;
