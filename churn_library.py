@@ -713,7 +713,7 @@ if __name__ == "__main__":
     (2) and exemplary inference.
 
     If the models have been generated (pipeline 1), we can comment its call out
-    and simply run the inference.
+    and simply run the inference (pipeline 2).
     '''
 
     # Pipeline 1: Data Analysis and Modeling
