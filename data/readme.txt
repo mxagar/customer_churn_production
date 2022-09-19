@@ -1,0 +1,1 @@
+This folder contains the dataset and a sample generated during training for inference testing purposes.
