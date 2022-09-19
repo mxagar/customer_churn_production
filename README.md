@@ -171,7 +171,11 @@ autopep8 --in-place --aggressive --aggressive churn_library.py
 ## Possible Improvements
 
 - [x] Add dependencies and libraries to `README.md`.
-- [ ] Re-organize each script to work as a class.
+- [x] Re-factor data processing functions to work as transformer classes.
+- [x] Create two separate simplified pipelines: training and inference.
+- [x] Re-factor data processing function to be able to run it during training or inference.
+- [ ] Further re-factor functions; e.g., some EDA plot generations contain repeated computations that can be parametrized.
+- [ ] 
 - [ ] Update functions to move constants to their own `constants.py` or `conftest.py` file.
 - [ ] Work towards `pylint` score of 10/10. However, note that some variable names were chosen to be non-PEP8-conform due to their popular use in the field (e.g., `X_train`).
 - [ ] Create Dockerfile.
