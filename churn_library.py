@@ -465,7 +465,7 @@ def train_models(X_train,
     - Random forests
 
     A grid search using cross-validation is carried out for each model.
- 
+
     Note, however, that the transformations done in perform_data_processing()
     are obligatory: that function should precede the current.
 
@@ -481,7 +481,7 @@ def train_models(X_train,
     # Note: if the default solver='lbfgs' fails to converge, use another
     # https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
     lr_pipe = Pipeline([
-        ("polynomial_features", PolynomialFeatures()),        
+        ("polynomial_features", PolynomialFeatures()),
         ("scaler", StandardScaler()),
         ("model", LogisticRegression(solver='liblinear', random_state=42, max_iter=3000))])
 
@@ -528,7 +528,7 @@ def train_models(X_train,
     # Save best models/pipelines
     joblib.dump(lr_pipe_cv_best, model_output_path+'/logistic_regression_model_pipe.pkl')
     joblib.dump(rf_pipe_cv_best, model_output_path+'/random_forest_model_pipe.pkl')
-    
+
     models = (lr_pipe_cv_best, rf_pipe_cv_best)
 
     return models
@@ -555,13 +555,13 @@ def evaluate_models(X_train,
     '''
     # Unpack models
     lrc, rfc = models
-    
+
     # Predict target for train & test features
     y_train_preds_rf = rfc.predict(X_train)
     y_test_preds_rf = rfc.predict(X_test)
     y_train_preds_lr = lrc.predict(X_train)
     y_test_preds_lr = lrc.predict(X_test)
-    
+
     # Generate and save classification report plots
     classification_report_image(y_train,
                                 y_test,
@@ -582,7 +582,7 @@ def evaluate_models(X_train,
     feature_importance_plot(rfc, X_train, eval_output_path, filename_label)
     #filename_label = "logistic_regression"
     #feature_importance_plot(lrc, X_train, eval_output_path, filename_label)
-    
+
 def load_model_pipeline(model_path):
     '''Loads model pipeline from path.'''
     try:
@@ -662,7 +662,7 @@ def run_training():
                     y_test,
                     models,
                     eval_output_path=EVAL_OUTPUT_PATH)
-    
+
 def run_inference():
     '''Executes an exemplary inference.
     The artifacts generated in the function run_training() are used here.
