@@ -31,7 +31,7 @@ Clean code principles are guaranteed:
 
 PEP8 conventions checked with:
 
->> pylint churn_library.py # 8.30/10
+>> pylint churn_library.py # 7.96/10
 >> autopep8 churn_library.py
 
 The file can be run stand-alone:
@@ -53,8 +53,8 @@ Date: 2022-06-08
 import os
 import time
 #os.environ['QT_QPA_PLATFORM']='offscreen'
-import joblib
 import logging
+import joblib
 import yaml
 
 #import shap
@@ -772,7 +772,7 @@ if __name__ == "__main__":
     If the models have been generated (pipeline 1), we can comment its call out
     and simply run the inference (pipeline 2).
     '''
-    
+
     # Load the configuration file
     with open("config.yaml", 'r') as stream:
         config = yaml.safe_load(stream)

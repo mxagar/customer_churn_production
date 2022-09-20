@@ -5,12 +5,13 @@ Credit Card Customers dataset from Kaggle:
 
 https://www.kaggle.com/datasets/sakshigoyal7/credit-card-customers/code
 
-Altogether, 5 unit tests are defined using pytest:
+Altogether, 6 unit tests are defined using pytest:
 - test_import(import_data)
 - test_eda(perform_eda)
-- test_encoder_helper(encoder_helper)
 - test_perform_data_processing(perform_data_processing)
 - test_train_models(train_models)
+- test_evaluate_models(evaluate_models)
+- test_predict(predict)
 
 Clean code principles are guaranteed in the project
 - Modularized code
@@ -21,16 +22,21 @@ Clean code principles are guaranteed in the project
 
 PEP8 conventions checked with:
 
->> pylint test_churn_library.py.py # 7.86/10
+>> pylint test_churn_library.py.py # 8.48/10
 >> autopep8 test_churn_library.py.py
 
 Since the we use the logging module in the tests,
-the testing file must be called explicitly:
+the testing file must be called explicitly,
+not with `pytest` alone:
 
 >> python test_churn_library.py
 
 Note that the "__main__" calls pytest.
-Additionally
+Additionally, note that the testing configuration fixtures
+are located in `conftest.py`.
+
+The content from `conftest.py` must be consistent with the
+project configuration file `config.yaml`.
 
 To install pytest:
 
@@ -43,7 +49,7 @@ Additionally:
 - Any produced models are stored in `./models`
 - Any plots of the EDA and the classification results are stored in `./images/`
 - Logs are stored in `./logs/`
-- All other artifacts are stored in `./artifacts/`
+- All other artifacts (e.g., data processing parameters) are stored in `./artifacts/`
 
 Author: Mikel Sagardia
 Date: 2022-06-08
@@ -71,8 +77,7 @@ logging.basicConfig(
     # logger - time - level - our message
     format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 
-# IMPORTANT: the file conftest.py defined the fixtures used in here!
-# Note that the 
+# IMPORTANT: the file conftest.py defines the fixtures used in here!
 
 ### -- Tests -- ###
 
@@ -84,7 +89,7 @@ def test_import_data(import_data, dataset_path_train, dataset_path_inference):
         dataset_path_train (function object): fixture function which returns the path
             of the dataset to be imported for training
         dataset_path_inference (function object): fixture function which returns the path
-            of the dataset to be imported for inference            
+            of the dataset to be imported for inference
     Output:
         None
     '''
@@ -120,7 +125,7 @@ def test_import_data(import_data, dataset_path_train, dataset_path_inference):
 
 def test_perform_eda(perform_eda, eda_path, expected_eda_images):
     '''Test perform_eda function.
-    
+
     Input:
         perform_eda (function object): function to be tested
         eda_path (function object): fixture function which returns the path
@@ -156,7 +161,7 @@ def test_perform_data_processing(perform_data_processing,
                                  response,
                                  expected_artifact):
     '''Test perform_data_processing function.
-    
+
     Input:
         perform_data_processing (function object): function to be tested
         split (function object): split dataset
@@ -214,7 +219,7 @@ def test_perform_data_processing(perform_data_processing,
     except AssertionError as err:
         logging.error("TESTING perform_data_processing: ERROR - Not all columns in the processed dataset are numerical!")
         raise err
-    
+
     # Load processing parameters
     processing_params = dict()
     try:
@@ -222,7 +227,7 @@ def test_perform_data_processing(perform_data_processing,
     except Exception as err:
         logging.error("TESTING perform_data_processing: ERROR - Processing parameters dictionary %s cannot be loaded", expected_artifact)
         raise err
- 
+
     # Check the data processing artifact
     # - cols_cat
     # - cols_num
@@ -265,7 +270,7 @@ def test_train_models(train_models,
                       expected_models):
     '''
     Test train_models
-    
+
     Input:
         train_models (function object): function to be tested
         load_model_pipeline (function object): auxiliary function that loads models,
@@ -317,7 +322,7 @@ def test_evaluate_models(evaluate_models,
                          expected_result_images):
     '''
     Test evaluate_models function.
-    
+
     Input:
         evaluate_models (function object): function to be tested
         results_path (function object): fixture function which returns the path
@@ -332,7 +337,7 @@ def test_evaluate_models(evaluate_models,
     models = pytest.models
     # Unpack training splits stored in the pytest namespace
     X_train, X_test, y_train, y_test = pytest.splits
-    
+
     # Call evaluate_models
     evaluate_models(X_train,
                     X_test,
@@ -340,7 +345,7 @@ def test_evaluate_models(evaluate_models,
                     y_test,
                     models,
                     eval_output_path=results_path)
-    
+
     # Check that the result images were correctly saved
     result_filenames = [f for f in listdir(results_path) if isfile(join(results_path, f))]
     try:
@@ -361,7 +366,7 @@ def test_evaluate_models(evaluate_models,
 def test_predict(predict):
     '''
     Test predict function.
-    
+
     Input:
         predict (function object): function to be tested
     Output:
@@ -371,7 +376,7 @@ def test_predict(predict):
     models = pytest.models
     # Unpack training splits stored in the pytest namespace
     X_train, X_test, y_train, y_test = pytest.splits
-        
+
     for model in models:
         # Predict
         preds =  predict(model, X_test)
@@ -381,7 +386,7 @@ def test_predict(predict):
         except AssertionError as err:
             logging.error("TESTING predict: ERROR - Wrong number of predictions")
             raise err
-        
+
         accuracy = float(np.sum(preds == y_test)) / float(len(y_test))
         try:
             assert accuracy > 0.6
