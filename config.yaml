@@ -1,3 +1,10 @@
+# Note that there are additional parameters
+# which are still hard-coded in churn_library.py
+# They belong here!
+# Furthermore, note that test_churn_library.py
+# has also hard-coded parameters; the content
+# in the fixtures of test_churn_library.py
+# must be consistent with this YAML file!
 dataset_path: ./data/bank_data.csv
 dataset_path_sample: ./data/bank_data_sample.csv
 response: Churn
