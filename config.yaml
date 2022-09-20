@@ -1,0 +1,8 @@
+dataset_path: ./data/bank_data.csv
+dataset_path_sample: ./data/bank_data_sample.csv
+response: Churn
+eda_output_path: ./images/eda
+artifact_path: ./artifacts
+model_output_path: ./models
+eval_output_path: ./images/results
+inference_model_filename: ./models/random_forest_model_pipe.pkl
