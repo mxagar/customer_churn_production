@@ -55,6 +55,7 @@ import time
 #os.environ['QT_QPA_PLATFORM']='offscreen'
 import joblib
 import logging
+import yaml
 
 #import shap
 import pandas as pd
@@ -653,7 +654,7 @@ def split(X, y):
 
     return X_train, X_test, y_train, y_test
 
-def run_training():
+def run_training(config):
     '''Executes the complete model/pipeline generation:
     - Import dataset
     - Exploratory Data Analysis (EDA)
@@ -675,14 +676,14 @@ def run_training():
     # If not specified explicitly,
     # a sample with the first 10 entries (_sample.csv)
     # is saved for testing inference
-    DATASET_PATH = "./data/bank_data.csv"
+    DATASET_PATH = config["dataset_path"] # "./data/bank_data.csv"
     print(f"\nLoading dataset...\t{DATASET_PATH}")
     df = import_data(DATASET_PATH, save_sample=True)
 
     # Perform Exploratory Data Analysis (EDA)
     # EDA report images are saved to `images/eda`
     print("\nPerforming EDA...")
-    EDA_OUTPUT_PATH = "./images/eda"
+    EDA_OUTPUT_PATH = config["eda_output_path"] # "./images/eda"
     perform_eda(df, EDA_OUTPUT_PATH)
 
     # Perform Feature Engineering
@@ -690,8 +691,8 @@ def run_training():
     # are saved to `./artifacts`
     # IMPORTANT: train=True
     print("\nPerforming Data Processing...")
-    RESPONSE = "Churn" # Target name
-    ARTIFACT_PATH = "./artifacts"
+    RESPONSE = config["response"] # "Churn" # Target name
+    ARTIFACT_PATH = config["artifact_path"] # "./artifacts"
     X, y = perform_data_processing(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=True)
 
     # Train/Test split
@@ -701,7 +702,7 @@ def run_training():
     # Train the models
     # Models are saved to `models/`
     print("\nTrainig...")
-    MODEL_OUTPUT_PATH = "./models"
+    MODEL_OUTPUT_PATH = config["model_output_path"] # "./models"
     models = train_models(X_train,
                           y_train,
                           model_output_path=MODEL_OUTPUT_PATH)
@@ -709,7 +710,7 @@ def run_training():
     # Evaluate the models
     # Report images saved to `images/results`
     print("\nEvaluating...")
-    EVAL_OUTPUT_PATH = "./images/results"
+    EVAL_OUTPUT_PATH = config["eval_output_path"] # "./images/results"
     evaluate_models(X_train,
                     X_test,
                     y_train,
@@ -719,7 +720,7 @@ def run_training():
 
     logging.info("run_training: SUCCESS!")
 
-def run_inference():
+def run_inference(config):
     '''Executes an exemplary inference.
     The artifacts generated in the function run_training() are used here.
 
@@ -737,12 +738,12 @@ def run_inference():
     print("\n### INFERENCE PIPELINE ###")
 
     # Load sample dataset
-    DATASET_PATH = "./data/bank_data_sample.csv"
+    DATASET_PATH = config["dataset_path_sample"] # "./data/bank_data_sample.csv"
     print(f"\nLoading exemplary dataset...\t{DATASET_PATH}")
     df = import_data(DATASET_PATH, save_sample=False)
 
     # Load model pipeline
-    MODEL_FILENAME = "./models/random_forest_model_pipe.pkl"
+    MODEL_FILENAME = config["inference_model_filename"] # "./models/random_forest_model_pipe.pkl"
     print(f"\nLoading model pipeline...\t{MODEL_FILENAME}")
     model_pipeline = load_model_pipeline(MODEL_FILENAME)
 
@@ -751,8 +752,8 @@ def run_inference():
     # are read from `./artifacts`
     # IMPORTANT: train=False
     print("\nPerforming Data Processing...")
-    RESPONSE = "Churn" # Target name
-    ARTIFACT_PATH = "./artifacts"
+    RESPONSE = config["response"] # "Churn" # Target name
+    ARTIFACT_PATH = config["artifact_path"] # "./artifacts"
     X, _ = perform_data_processing(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=False)
 
     # Predict
@@ -771,12 +772,16 @@ if __name__ == "__main__":
     If the models have been generated (pipeline 1), we can comment its call out
     and simply run the inference (pipeline 2).
     '''
+    
+    # Load the configuration file
+    with open("config.yaml", 'r') as stream:
+        config = yaml.safe_load(stream)
 
     # Pipeline 1: Data Analysis and Modeling
     # Dataset is loaded and analyzed; models and artifacts are created.
-    run_training()
+    run_training(config)
 
     # Pipeline 2: Exemplary Inference
     # Sample dataset, trained models and artifacts are loaded;
     # an exemplary inference is carried out.
-    run_inference()
+    run_inference(config)
