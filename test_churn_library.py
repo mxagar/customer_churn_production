@@ -9,7 +9,7 @@ Altogether, 5 unit tests are defined using pytest:
 - test_import(import_data)
 - test_eda(perform_eda)
 - test_encoder_helper(encoder_helper)
-- test_perform_feature_engineering(perform_feature_engineering)
+- test_perform_data_processing(perform_data_processing)
 - test_train_models(train_models)
 
 Clean code principles are guaranteed in the project
@@ -50,171 +50,84 @@ import os
 from os import listdir
 from os.path import isfile, join
 import logging
-import joblib
-import numpy as np
+# Without logging and with fixtures in conftest.py
+# we'd need to import pytest only in conftest.py
 import pytest
+import numpy as np
 
-#import churn_library_solution as cls
-import churn_library as cl
+#from transformations import MeanImputer, ModeImputer, CategoryEncoder
+import transformations as tf
 
 # Logging configuration
 logging.basicConfig(
-    filename='./logs/churn_library.log', # filename, where it's dumped
+    filename='./logs/test_churn_library.log', # filename, where it's dumped
     level=logging.INFO, # minimum level I log
     filemode='w',
     # https://docs.python.org/3/library/logging.html
     # logger - time - level - our message
     format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 
-# Fixtures of the churn library functions.
-# These fixture could go in a conftest.py file.
-# Fixtures are predefined variables passed to test functions;
-# in this case, most variables are functions to be tested.
-@pytest.fixture
-def dataset_path():
-    '''Dataset path'''
-    return "./data/bank_data.csv"
+# IMPORTANT: the file conftest.py defined the fixtures used in here!
+# Note that the 
 
-@pytest.fixture
-def import_data():
-    '''import_data function from churn_library'''
-    return cl.import_data
+### -- Tests -- ###
 
-@pytest.fixture
-def eda_path():
-    '''Path where EDA images are saved'''
-    return './images/eda'
+def test_import_data(import_data, dataset_path_train, dataset_path_inference):
+    '''Test data import.
 
-@pytest.fixture
-def expected_eda_images():
-    '''List of saved EDA image filenames'''
-    return ['corr_heatmap.png',
-            'total_trans_ct_dist.png',
-            'age_dist.png',
-            'churn_dist.png',
-            'marital_status_dist.png']
-
-@pytest.fixture
-def perform_eda():
-    '''perform_eda function from churn_library'''
-    return cl.perform_eda
-
-@pytest.fixture
-def category_lst():
-    '''List of categorical features'''
-    return ['Gender',
-            'Education_Level',
-            'Marital_Status',
-            'Income_Category',
-            'Card_Category']
-
-@pytest.fixture
-def response():
-    '''Response/Target variable name'''
-    return "Churn"
-
-@pytest.fixture
-def encoder_helper():
-    '''encoder_helper function from churn_library'''
-    return cl.encoder_helper
-
-@pytest.fixture
-def num_features():
-    '''Number of final features'''
-    return 19
-
-@pytest.fixture
-def perform_feature_engineering():
-    '''perform_feature_engineering function from churn_library'''
-    return cl.perform_feature_engineering
-
-@pytest.fixture
-def models_path():
-    '''Path where models are stored'''
-    return './models'
-
-@pytest.fixture
-def results_path():
-    '''Path where result images are stored'''
-    return './images/results'
-
-@pytest.fixture
-def expected_models():
-    '''List of stored model names'''
-    return ['rfc_model_best.pkl',
-            'rfc_model.pkl',
-            'logistic_model.pkl']
-
-@pytest.fixture
-def expected_result_images():
-    '''List of saved result images'''
-    return ['rf_classification_report.png',
-            'lr_classification_report.png',
-            'feature_importance.png',
-            'roc_plots.png']
-
-@pytest.fixture
-def train_models():
-    '''train_models function from churn_library'''
-    return cl.train_models
-
-def df_plugin():
-    '''Initialize pytest dataset container df as None'''
-    return None
-
-def splits_plugin():
-    '''Initialize pytest splits container as None
-    splits = (X_train, X_test, y_train, y_test)
-    '''
-    return None
-
-def pytest_configure():
-    '''Create a dataframe object 'pytest.df' in namespace
-    as well as 'pytest.splits'
-    '''
-    pytest.df = df_plugin() # we can access & modify pytest.df in test functions!
-    pytest.splits = splits_plugin()
-
-# Tests
-
-def test_import(import_data, dataset_path):
-    '''
-    Test data import
-
-    input:
+    Input:
         import_data (function object): function to be tested
-        dataset_path (function object): fixture function which returns the path
-            of the dataset to be imported
+        dataset_path_train (function object): fixture function which returns the path
+            of the dataset to be imported for training
+        dataset_path_inference (function object): fixture function which returns the path
+            of the dataset to be imported for inference            
+    Output:
+        None
     '''
+    # Training dataset
     try:
-        df = import_data(dataset_path)
+        df = import_data(dataset_path_train, save_sample=True)
         # Assign to pytest namespace object for further use
         pytest.df = df
-        logging.info("TESTING import_data: SUCCESS")
+        logging.info("TESTING import_data (train): SUCCESS")
     except FileNotFoundError as err:
-        logging.error("TESTING import_eda: ERROR - The file wasn't found")
+        logging.error("TESTING import_data (train): ERROR - The file wasn't found")
         raise err
-
     try:
         assert pytest.df.shape[0] > 0
         assert pytest.df.shape[1] > 0
     except AssertionError as err:
-        logging.error("TESTING import_data: ERROR - File has no rows / columns")
+        logging.error("TESTING import_data (train): ERROR - File has no rows / columns")
         raise err
 
+    # Inference dataset
+    try:
+        df_sample = import_data(dataset_path_inference, save_sample=False)
+        logging.info("TESTING import_data (inference): SUCCESS")
+        try:
+            assert df_sample.shape[0] > 0
+            assert df_sample.shape[1] > 0
+        except AssertionError as err:
+            logging.error("TESTING import_data (inference): ERROR - File has no rows / columns")
+            raise err
+    except FileNotFoundError as err:
+        logging.error("TESTING import_datas (inference): ERROR - The file wasn't found")
+        raise err
 
-def test_eda(perform_eda, eda_path, expected_eda_images):
-    '''
-    Test perform_eda_function
-    input:
+def test_perform_eda(perform_eda, eda_path, expected_eda_images):
+    '''Test perform_eda function.
+    
+    Input:
         perform_eda (function object): function to be tested
         eda_path (function object): fixture function which returns the path
             where the EDA images are to be saved
         expected_eda_images (function object): fixture function which returns a
             list of all the expected EDA image filenames
+    Output:
+        None
     '''
     # After perform_eda(df) we should get these images:
-    perform_eda(pytest.df)
+    perform_eda(pytest.df, eda_path)
     filenames = [f for f in listdir(eda_path) if isfile(join(eda_path, f))]
 
     try:
@@ -232,50 +145,27 @@ def test_eda(perform_eda, eda_path, expected_eda_images):
 
     logging.info("TESTING perform_eda: SUCCESS")
 
-def test_encoder_helper(encoder_helper, category_lst, response):
-    '''
-    Test encoder_helper
-    input:
-        encoder_helper (function object): function to be tested
-        category_lst (function object): fixture function which returns a list
-            of categorical features to be encoded
-        response (function object): fixture function which returns the name
-            of the target/response
-    '''
-    try:
-        pytest.df, cat_columns_encoded = encoder_helper(pytest.df, category_lst, response)
-    except KeyError as err:
-        logging.error("TESTING encoder_helper: ERROR - Missing categorical column")
-        raise err
-
-    for col in category_lst:
-        col_name = col+"_"+response
-        try:
-            assert col_name in pytest.df.columns and col_name in cat_columns_encoded
-        except AssertionError as err:
-            logging.error("TESTING encoder_helper: ERROR - Missing categorical column %s", col_name)
-            raise err
-        try:
-            assert np.sum(pytest.df[col_name].isnull()) < 1
-        except AssertionError as err:
-            logging.error("TESTING encoder_helper: ERROR - Unexpected NA values in %s", col_name)
-            raise err
-
-    logging.info("TESTING encoder_helper: SUCCESS")
-
-def test_perform_feature_engineering(perform_feature_engineering, num_features, response):
-    '''
-    Test encoder_helper
-    input:
-        perform_feature_engineering (function object): function to be tested
+def test_perform_data_processing(perform_data_processing, split, num_features, artifact_path, response, expected_artifact):
+    '''Test perform_data_processing function.
+    
+    Input:
+        perform_data_processing (function object): function to be tested
+        split (function object): split dataset
         num_features (function object): fixture function which returns the number
             of features in the final dataset
+        artifact_path (function object): fixture which returns the path
+            of the artifacts related to the data processing
         response (function object): fixture function which returns the name
             of the target/response
+    Output:
+        None
     '''
-    # Feature engineering
-    X_train, X_test, y_train, y_test = perform_feature_engineering(pytest.df,
-        response=response)
+    # Data Processing: Data Cleaning, Feature Engineering
+    X, y = perform_data_processing(pytest.df,
+                                   response=response,
+                                   artifact_path=artifact_path,
+                                   train=True)
+    X_train, X_test, y_train, y_test = split(X, y)
     # Save training splits
     pytest.splits = (X_train, X_test, y_train, y_test)
     try:
@@ -286,35 +176,61 @@ def test_perform_feature_engineering(perform_feature_engineering, num_features, 
         assert y_train.shape[0] > 0
         assert y_test.shape[0] > 0
     except AssertionError as err:
-        logging.error("TESTING perform_feature_engineering: ERROR - Unexpected sizes for X & y!")
+        logging.error("TESTING perform_data_processing: ERROR - Unexpected sizes for X & y!")
         raise err
 
-    logging.info("TESTING perform_feature_engineering: SUCCESS")
+    # Check the features:
+    # - no duplicates
+    # - no missing values
+    # - all are numerical
+    cols_num = list(X.select_dtypes(['int64','float64']).columns)
+    cols_cat = list(X.select_dtypes(['object']).columns)
+    try:
+        assert X.index.is_unique
+    except AssertionError as err:
+        logging.error("TESTING perform_data_processing: ERROR - Duplicate indices in processed dataset!")
+        raise err
+    try:
+        assert X.index.is_unique
+    except AssertionError as err:
+        logging.error("TESTING perform_data_processing: ERROR - Duplicate indices in processed dataset!")
+        raise err
+    
+    # Check the data processing artifact
+    # - cols_cat == 0
+    # - cols_num == 0
+    # - num_features == 19
+    # - mean_imputer: correctly filled dictionary
+    # - mode_imputer: correctly filled dictionary
+    # - category_encoder: correctly filled dictionary
+        
+    logging.info("TESTING perform_data_processing: SUCCESS")
 
 def test_train_models(train_models,
+                      load_model_pipeline,
                       models_path,
-                      results_path,
-                      expected_models,
-                      expected_result_images):
+                      expected_models):
     '''
     Test train_models
-    input:
+    
+    Input:
         train_models (function object): function to be tested
+        load_model_pipeline (function object): auxiliary function that loads models,
+            also tested
         models_path (function object): fixture function which returns the path
             where the created models are to be found
-        results_path (function object): fixture function which returns the path
-            where the created result images are to be found
         expected_models (function object): fixture function which returns
             the names of the models that should have been stored by train_models
-        expected_result_images (function object): fixture function which returns
-            the names of the result images that should have been stored
-            by train_models
+    Output:
+        None
     '''
     # Unpack training splits stored in the pytest namespace
     X_train, X_test, y_train, y_test = pytest.splits
 
-    # Peroform training
-    train_models(X_train, X_test, y_train, y_test)
+    # Perform training
+    models = train_models(X_train, y_train, model_output_path=models_path)
+    #models = (lr_pipe_cv_best, rf_pipe_cv_best)
+    pytest.models = models
 
     # Check that models are correctly stored
     model_filenames = [f for f in listdir(models_path) if isfile(join(models_path, f))]
@@ -335,33 +251,98 @@ def test_train_models(train_models,
     for model_name in model_filenames:
         if model_name in expected_models:
             try:
-                model = joblib.load(join(models_path, model_name))
+                #model = joblib.load(join(models_path, model_name))
+                model = load_model_pipeline(join(models_path, model_name))
             except Exception as err:
                 logging.error("TESTING train_models: ERROR - Model %s cannot be loaded", model_name)
                 raise err
 
+    logging.info("TESTING train_models: SUCCESS")
+
+def test_evaluate_models(evaluate_models,
+                         results_path,
+                         expected_result_images):
+    '''
+    Test evaluate_models function.
+    
+    Input:
+        evaluate_models (function object): function to be tested
+        results_path (function object): fixture function which returns the path
+            where the created result images are to be found
+        expected_result_images (function object): fixture function which returns
+            the names of the result images that should have been stored
+            by train_models
+    Output:
+        None
+    '''
+    # Unpack the models stored in the pytest namespace
+    models = pytest.models
+    # Unpack training splits stored in the pytest namespace
+    X_train, X_test, y_train, y_test = pytest.splits
+    
+    # Call evaluate_models
+    evaluate_models(X_train,
+                    X_test,
+                    y_train,
+                    y_test,
+                    models,
+                    eval_output_path=results_path)
+    
     # Check that the result images were correctly saved
     result_filenames = [f for f in listdir(results_path) if isfile(join(results_path, f))]
     try:
         assert len(result_filenames) >= len(expected_result_images)
     except AssertionError as err:
-        logging.error("TESTING train_models: ERROR - Missing models")
+        logging.error("TESTING evaluate_models: ERROR - Missing models")
         raise err
 
     for result in result_filenames:
         try:
             assert result in result_filenames
         except AssertionError as err:
-            logging.error("TESTING train_models: ERROR - The result image %s is missing", result)
+            logging.error("TESTING evaluate_models: ERROR - The result image %s is missing", result)
             raise err
 
-    logging.info("TESTING train_models: SUCCESS")
+    logging.info("TESTING evaluate_models: SUCCESS")
+
+def test_predict(predict):
+    '''
+    Test predict function.
+    
+    Input:
+        predict (function object): function to be tested
+    Output:
+        None
+    '''
+    # Unpack the models stored in the pytest namespace
+    models = pytest.models
+    # Unpack training splits stored in the pytest namespace
+    X_train, X_test, y_train, y_test = pytest.splits
+        
+    for model in models:
+        # Predict
+        preds =  predict(model, X_test)
+
+        try:
+            assert len(preds) == len(y_test)
+        except AssertionError as err:
+            logging.error("TESTING predict: ERROR - Wrong number of predictions")
+            raise err
+        
+        accuracy = float(np.sum(preds == y_test)) / float(len(y_test))
+        try:
+            assert accuracy > 0.6
+        except AssertionError as err:
+            logging.error("TESTING predict: ERROR - Accuracy lower than 0.6: %f.", accuracy)
+            raise err
+
+    logging.info("TESTING predict: SUCCESS")
 
 if __name__ == "__main__":
     # Without logging, we would run
     # >> pytest
-    # or, in this case, since the file does not start with test_*
-    # >> pytest test_churn_library.py
+    # or, if the testing file does not start with test_*
+    # >> pytest file.py
     # However, logging does not occur when invoking pytest that way.
     # If we want to have logging with pytest, we either configure the TOML / INI
     # or we define the line below in __main__ and execute the tests with
