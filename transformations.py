@@ -67,7 +67,7 @@ class CategoryEncoder(BaseEstimator, TransformerMixin):
         if not isinstance(target, str):
             raise ValueError('target should be a string (column name)')
         self.target = target
-        self.imputer_dict_  = dict()
+        self.imputer_dict_ = dict()
         self.encoded_categoricals_ = []
 
     def fit(self, X, y=None):
