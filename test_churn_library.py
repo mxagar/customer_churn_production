@@ -24,10 +24,13 @@ PEP8 conventions checked with:
 >> pylint test_churn_library.py.py # 7.86/10
 >> autopep8 test_churn_library.py.py
 
-Since the filename of the tester module does not have a prefix `test_`,
-we need to notify pytest the filename to collect all tests:
+Since the we use the logging module in the tests,
+the testing file must be called explicitly:
 
->> pytest test_churn_library.py
+>> python test_churn_library.py
+
+Note that the "__main__" calls pytest.
+Additionally
 
 To install pytest:
 
@@ -50,6 +53,7 @@ import os
 from os import listdir
 from os.path import isfile, join
 import logging
+import joblib
 # Without logging and with fixtures in conftest.py
 # we'd need to import pytest only in conftest.py
 import pytest
@@ -145,7 +149,12 @@ def test_perform_eda(perform_eda, eda_path, expected_eda_images):
 
     logging.info("TESTING perform_eda: SUCCESS")
 
-def test_perform_data_processing(perform_data_processing, split, num_features, artifact_path, response, expected_artifact):
+def test_perform_data_processing(perform_data_processing,
+                                 split,
+                                 num_features,
+                                 artifact_path,
+                                 response,
+                                 expected_artifact):
     '''Test perform_data_processing function.
     
     Input:
@@ -191,19 +200,63 @@ def test_perform_data_processing(perform_data_processing, split, num_features, a
         logging.error("TESTING perform_data_processing: ERROR - Duplicate indices in processed dataset!")
         raise err
     try:
-        assert X.index.is_unique
+        assert int(np.sum(X.isnull().sum()==0)) == int(X.shape[1])
     except AssertionError as err:
-        logging.error("TESTING perform_data_processing: ERROR - Duplicate indices in processed dataset!")
+        logging.error("TESTING perform_data_processing: ERROR - Missing values in the processed dataset!")
+        raise err
+    try:
+        assert len(cols_cat) == 0
+    except AssertionError as err:
+        logging.error("TESTING perform_data_processing: ERROR - There are categorical columns in the processed dataset!")
+        raise err
+    try:
+        assert len(cols_num) == X.shape[1]
+    except AssertionError as err:
+        logging.error("TESTING perform_data_processing: ERROR - Not all columns in the processed dataset are numerical!")
         raise err
     
+    # Load processing parameters
+    processing_params = dict()
+    try:
+        processing_params = joblib.load(join(artifact_path, expected_artifact))
+    except Exception as err:
+        logging.error("TESTING perform_data_processing: ERROR - Processing parameters dictionary %s cannot be loaded", expected_artifact)
+        raise err
+ 
     # Check the data processing artifact
-    # - cols_cat == 0
-    # - cols_num == 0
+    # - cols_cat
+    # - cols_num
     # - num_features == 19
     # - mean_imputer: correctly filled dictionary
     # - mode_imputer: correctly filled dictionary
     # - category_encoder: correctly filled dictionary
-        
+    try:
+        assert processing_params["num_features"] == num_features
+    except AssertionError as err:
+        logging.error("TESTING perform_data_processing: ERROR - Number of features in training is different to expected: %d != %d.",
+                      processing_params["num_features"], num_features)
+        raise err
+    for feature in processing_params["mean_imputer"].variables:
+        try:
+            assert feature in processing_params["mean_imputer"].imputer_dict_.keys()
+        except AssertionError as err:
+            logging.error("TESTING perform_data_processing: ERROR - MeanImputer is inconsistent.")
+            raise err
+    for feature in processing_params["mode_imputer"].variables:
+        try:
+            assert feature in processing_params["mode_imputer"].imputer_dict_.keys()
+        except AssertionError as err:
+            logging.error("TESTING perform_data_processing: ERROR - ModeImputer is inconsistent.")
+            raise err
+    for _, categories in processing_params["category_encoder"].imputer_dict_.items():
+        for _, ratio in categories.items():
+            try:
+                assert ratio >= 0.0
+                assert ratio <= 1.0
+            except AssertionError as err:
+                logging.error("TESTING perform_data_processing: ERROR - CategoryEncoder contains values out of range.")
+                raise err
+
     logging.info("TESTING perform_data_processing: SUCCESS")
 
 def test_train_models(train_models,
