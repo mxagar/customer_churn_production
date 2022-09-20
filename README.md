@@ -174,13 +174,15 @@ autopep8 --in-place --aggressive --aggressive churn_library.py
 - [x] Re-factor data processing functions to work as transformer classes.
 - [x] Create two separate simplified pipelines: training and inference.
 - [x] Re-factor data processing function to be able to run it during training or inference.
-- [ ] Further re-factor functions; e.g., some EDA plot generations contain repeated computations that can be parametrized.
+- [x] Add logging to pipeline executions, too, not only to the testing module.
+- [x] Create a `conftest.py` file for testing.
 - [ ] Create a python package.
-- [ ] Move function parameters to a YAML configuration file.
-- [ ] Create a `conftest.py` file for testing.
 - [ ] Draw new sequence diagram.
-- [ ] Work towards `pylint` score of 10/10. However, note that some variable names were chosen to be non-PEP8-conform due to their popular use in the field (e.g., `X_train`).
 - [ ] Create a docker image and usage instructions with docker-compose.
+- [ ] Update `README.md` with new contents: new files, new execution commands, etc.
+- [ ] Further re-factor functions; e.g., some EDA plot generations contain repeated computations that can be parametrized.
+- [ ] Move function parameters to a YAML configuration file. The testing configuration file `conftest.py` should read from it, too?
+- [ ] Work towards `pylint` score of 10/10. However, note that some variable names were chosen to be non-PEP8-conform due to their popular use in the field (e.g., `X_train`).
 
 ## Interesting Links
 
