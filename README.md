@@ -22,6 +22,7 @@ Overview of contents:
 	- [How to Use This](#how-to-use-this)
 		- [Installation](#installation)
 		- [Running the Scripts](#running-the-scripts)
+	- [Limitations of This Boilerplate](#limitations-of-this-boilerplate)
 	- [Possible Improvements](#possible-improvements)
 	- [Interesting Links](#interesting-links)
 	- [Authorship](#authorship)
@@ -168,6 +169,12 @@ Tip: If you'd like to automatically edit and improve the score of a file that al
 autopep8 --in-place --aggressive --aggressive churn_library.py
 ```
 
+## Limitations of This Boilerplate
+
+- No tracking of datasets / models / artifacts.
+- Maybe `Pipeline` could be used.
+- No serving.
+
 ## Possible Improvements
 
 - [x] Add dependencies and libraries to `README.md`.
@@ -176,12 +183,12 @@ autopep8 --in-place --aggressive --aggressive churn_library.py
 - [x] Re-factor data processing function to be able to run it during training or inference.
 - [x] Add logging to pipeline executions, too, not only to the testing module.
 - [x] Create a `conftest.py` file for testing.
+- [x] Move function parameters to a YAML configuration file. The testing configuration file `conftest.py` should read from it, too?
 - [ ] Create a python package.
 - [ ] Draw new sequence diagram.
 - [ ] Create a docker image and usage instructions with docker-compose.
 - [ ] Update `README.md` with new contents: new files, new execution commands, etc.
 - [ ] Further re-factor functions; e.g., some EDA plot generations contain repeated computations that can be parametrized.
-- [ ] Move function parameters to a YAML configuration file. The testing configuration file `conftest.py` should read from it, too?
 - [ ] Work towards `pylint` score of 10/10. However, note that some variable names were chosen to be non-PEP8-conform due to their popular use in the field (e.g., `X_train`).
 
 ## Interesting Links
