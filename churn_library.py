@@ -54,6 +54,7 @@ import os
 import time
 #os.environ['QT_QPA_PLATFORM']='offscreen'
 import joblib
+import logging
 
 #import shap
 import pandas as pd
@@ -83,6 +84,15 @@ os.environ['QT_QPA_PLATFORM']='offscreen'
 matplotlib.use('TkAgg')
 sns.set()
 
+# Logging configuration
+logging.basicConfig(
+    filename='./logs/churn_library.log', # filename, where it's dumped
+    level=logging.INFO, # minimum level I log
+    filemode='w',
+    # https://docs.python.org/3/library/logging.html
+    # logger - time - level - our message
+    format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+
 def import_data(pth, save_sample=True):
     '''Returns dataframe for the CSV found at pth.
     For training save_sample=True; for inference save_sample=False.
@@ -103,11 +113,14 @@ def import_data(pth, save_sample=True):
             pth_sample = pth.split('.csv')[0]+'_sample.csv'
             data_sample = data.iloc[:10,:]
             data_sample.to_csv(pth_sample,sep=',', header=True, index=False)
+        logging.info("import_data: SUCCESS!")
         return data
     except (FileNotFoundError, NameError):
-        print("File not found!")
+        #print("File not found!")
+        logging.error("import_data: File not found: %s.", pth)
     except IsADirectoryError:
-        print("File is a directory!")
+        #print("File is a directory!")
+        logging.error("import_data: File is a directory.")
 
     return None
 
@@ -126,8 +139,10 @@ def perform_eda(data, output_path):
     try:
         for col in cols_analyze:
             assert col in data.columns
+        logging.info("perform_eda: All columns to be analyzed are in the dataset.")
     except AssertionError as err:
-        print(f"EDA: Missing columns in the dataset.")
+        #print("EDA: Missing columns in the dataset.")
+        logging.error("perform_eda: Missing columns in the dataset.")
         raise err
 
     # General paramaters
@@ -164,6 +179,8 @@ def perform_eda(data, output_path):
     fig = plt.figure(figsize=figsize)
     sns.heatmap(data.corr(), annot=False, cmap='Dark2_r', linewidths = 2)
     fig.savefig(rootpath+'/corr_heatmap.png', dpi=dpi)
+
+    logging.info("perform_eda: SUCCESS!")
 
 def perform_data_processing(data,
                             response="Churn",
@@ -206,7 +223,8 @@ def perform_data_processing(data,
             # Check models can be loaded
             processing_params = joblib.load(artifact_path+'/processing_params.pkl')
         except FileNotFoundError:
-            print("The processing parameters from previous training not found!")
+            #print("The processing parameters from previous training not found!")
+            logging.error("perform_data_processing: The processing parameters from previous training not found.")
 
     # New Churn variable (target): 1 Yes, 0 No
     col_org_response = 'Attrition_Flag'
@@ -216,10 +234,12 @@ def perform_data_processing(data,
         data[response] = data[col_org_response].apply(
             lambda val: 0 if val == response_value_org_negative else 1)
     except AssertionError as err:
-        print(f"The df must contain the column '{col_org_response}'.")
+        #print(f"The df must contain the column '{col_org_response}'.")
+        logging.error("perform_data_processing: The df must contain the column %s.", col_org_response)
         raise err
     except KeyError as err:
-        print("Response key must be a string!")
+        #print("Response key must be a string!")
+        logging.error("perform_data_processing: Response key must be a string.")
         raise err
 
     # Drop unnecessary columns
@@ -228,7 +248,8 @@ def perform_data_processing(data,
         for col in cols_drop:
             data.drop(col, axis=1, inplace=True)
     except KeyError as err:
-        print("Missing columns in the dataframe.")
+        #print("Missing columns in the dataframe.")
+        logging.error("perform_data_processing: Missing columns in the dataframe.")
         raise err
 
     # Drop duplicates
@@ -254,7 +275,8 @@ def perform_data_processing(data,
                 try:
                     assert col in processing_params[col_list_names[i]]
                 except AssertionError as err:
-                    print(f"Column {col} not found in set of columns from training.")
+                    #print(f"Column {col} not found in set of columns from training.")
+                    logging.error("perform_data_processing: Column not present in training dataset: %s.", col)
                     raise err
 
     # Handle missing values
@@ -307,7 +329,8 @@ def perform_data_processing(data,
         try:
             assert col in cols_num_encoded
         except AssertionError as err:
-            print(f"Column {col} not found in set of numerical columns.")
+            #print(f"Column {col} not found in set of numerical columns.")
+            logging.error("perform_data_processing: Encoded column is not numerical: %s.", col)
             raise err
     cols_keep = cols_num_encoded
     # Build X
@@ -321,7 +344,8 @@ def perform_data_processing(data,
         try:
             assert X.shape[1] == num_features
         except AssertionError as err:
-            print(f"Wrong number of columns: {X.shape[1]} != {str(num_features)}")
+            #print(f"Wrong number of columns: {X.shape[1]} != {str(num_features)}")
+            logging.error("perform_data_processing: Number of columns is different than in training dataset: %d != %d.", X.shape[1], num_features)
             raise err
 
     if train:
@@ -333,6 +357,8 @@ def perform_data_processing(data,
         # - mode_imputer
         # - category_encoder
         joblib.dump(processing_params, artifact_path+'/processing_params.pkl')
+
+    logging.info("perform_data_processing: SUCCESS!")
 
     return X, y
 
@@ -391,6 +417,8 @@ def classification_report_image(y_train,
     plt.axis('off')
     fig.savefig(output_path+'/lr_classification_report.png', dpi=dpi)
 
+    logging.info("classification_report_image: SUCCESS!")
+
 def roc_curve_plot(models, X_test, y_test, output_path):
     '''Creates and stores the feature importances in pth
 
@@ -417,6 +445,8 @@ def roc_curve_plot(models, X_test, y_test, output_path):
     lrc_plot.plot(ax=ax, alpha=0.8)
     fig.savefig(output_path+'/roc_plots.png', dpi=dpi)
 
+    logging.info("roc_curve_plot: SUCCESS!")
+
 def feature_importance_plot(model, X_data, output_path, filename_label):
     '''Creates and stores the feature importances in pth.
     Note that the function assumes there is no addition of features in the model pipeline,
@@ -434,6 +464,13 @@ def feature_importance_plot(model, X_data, output_path, filename_label):
     importances = model['model'].feature_importances_
     # Sort feature importances in descending order
     indices = np.argsort(importances)[::-1]
+
+    try:
+        assert X_data.shape[1] == len(importances)
+    except AssertionError as err:
+        logging.error("feature_importance_plot: Number of dataset and model features differ: %d != %d.", X_data.shape[1], len(importances))
+        logging.info("feature_importance_plot: Maybe PolynomialFeatures were used?")
+        raise err
 
     # Rearrange feature names so they match the sorted feature importances
     names = [X_data.columns[i] for i in indices]
@@ -454,9 +491,10 @@ def feature_importance_plot(model, X_data, output_path, filename_label):
     # Save plot
     fig.savefig(output_path+'/feature_importance_'+filename_label+'.png', dpi=600)
 
+    logging.info("feature_importance_plot: SUCCESS!")
+
 def train_models(X_train,
                  y_train,
-                 eval_output_path="./images/results",
                  model_output_path="./models"):
     '''Trains and stores models.
     Instead of a model, a pipeline is stored,
@@ -474,7 +512,6 @@ def train_models(X_train,
     Input:
             X_train (data frame): X training data
             y_train (data frame / series): y training data
-            eval_output_path (string): path where evaluation report images are stored
             model_output_path (string): path where models are stored
     Output:
             models (objects tuple): best trained models, using grid search and cross-validation
@@ -509,7 +546,8 @@ def train_models(X_train,
     # Get best logistic regression model/pipeline
     lr_pipe_cv_best = lr_pipe_cv.best_estimator_
     t2 = time.time()
-    print(f"- Logistic regression trained with grid search and cross validation in {t2-t1:.2f} sec.")
+    #print(f"Logistic regression trained with grid search and cross validation in {t2-t1:.2f} sec.")
+    logging.info("train_models: Logistic regression trained in %.2f secs.", t2-t1)
 
     # Grid Search: Random Forest (Model 2)
     params_grid_rf = {
@@ -525,13 +563,16 @@ def train_models(X_train,
     # Get best random forest model/pipeline
     rf_pipe_cv_best = rf_pipe_cv.best_estimator_
     t2 = time.time()
-    print(f"- Random forest trained with grid search and cross validation in {t2-t1:.2f} sec.")
+    #print(f"Random forest trained with grid search and cross validation in {t2-t1:.2f} sec.")
+    logging.info("train_models: Random forest trained in %.2f secs.", t2-t1)
 
     # Save best models/pipelines
     joblib.dump(lr_pipe_cv_best, model_output_path+'/logistic_regression_model_pipe.pkl')
     joblib.dump(rf_pipe_cv_best, model_output_path+'/random_forest_model_pipe.pkl')
 
     models = (lr_pipe_cv_best, rf_pipe_cv_best)
+
+    logging.info("train_models: SUCCESS!")
 
     return models
 
@@ -585,14 +626,18 @@ def evaluate_models(X_train,
     #filename_label = "logistic_regression"
     #feature_importance_plot(lrc, X_train, eval_output_path, filename_label)
 
+    logging.info("evaluate_models: SUCCESS!")
+
 def load_model_pipeline(model_path):
     '''Loads model pipeline from path.'''
     try:
         # Load model with file and check this is successful
         model = joblib.load(model_path)
+        logging.info("load_model_pipeline: SUCCESS!")
         return model
     except FileNotFoundError:
-        print("Model pipeline not found!")
+        #print("Model pipeline not found!")
+        logging.error("load_model_pipeline: Model pipeline not found: %s.", model_path)
         return None
 
 def predict(model_pipeline, X):
@@ -600,6 +645,13 @@ def predict(model_pipeline, X):
     preds = model_pipeline.predict(X)
 
     return preds
+
+def split(X, y):
+    '''Splits X and y into train/test subsets.'''
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size= 0.3, random_state=42)
+
+    return X_train, X_test, y_train, y_test
 
 def run_training():
     '''Executes the complete model/pipeline generation:
@@ -644,7 +696,7 @@ def run_training():
 
     # Train/Test split
     print("\nPerforming Train/Test Split...")
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size= 0.3, random_state=42)
+    X_train, X_test, y_train, y_test = split(X, y)
 
     # Train the models
     # Models are saved to `models/`
@@ -664,6 +716,8 @@ def run_training():
                     y_test,
                     models,
                     eval_output_path=EVAL_OUTPUT_PATH)
+
+    logging.info("run_training: SUCCESS!")
 
 def run_inference():
     '''Executes an exemplary inference.
@@ -706,6 +760,8 @@ def run_inference():
     y_pred = predict(model_pipeline, X)
     print("Sample index and prediction value pairs:")
     print(list(zip(list(df.index),list(y_pred))))
+
+    logging.info("run_inference: SUCCESS!")
 
 if __name__ == "__main__":
     '''Two pipelines are executed one after the other:
