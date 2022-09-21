@@ -14,9 +14,9 @@ typical pipelines which share some steps:
     - Training: Random Forest and Logistic Regression models are fit
     - Classification report plots
 2. Exemplary inference pipeline, with these steps:
-    - Exemplary dataset is loaded (generated in pipeline 1)
-    - Model pipeline is loaded (generated in pipeline 1)
-    - Data Processing: Cleaning and Feature Engineering (FE) (same as in pipeline 1)
+    - Exemplary dataset is loaded (generated in Pipeline 1)
+    - Model pipeline is loaded (generated in Pipeline 1)
+    - Data Processing: Cleaning and Feature Engineering (FE) (same as in Pipeline 1)
     - Prediction
 
 Note that the first pipeline needs to have been executed
@@ -34,17 +34,34 @@ PEP8 conventions checked with:
 >> pylint churn_library.py # 7.96/10
 >> autopep8 churn_library.py
 
-The file can be run stand-alone:
+This file cannot be run stand-alone;
+instead, we can use in a `main.py` script defined as follows:
 
->> python churn_library.py
+```
+from customer_churn import churn_library as churn
+
+if __name__ == "__main__":
+    config_filename="config.yaml"
+    churn.run(config_filename)
+```
+
+Then, we execute the main file:
+
+>> python main.py
 
 The script expects the proper dataset to be located in `./data`
+or the folder specified in `config.yaml`.
 
-Additionally:
+Additionally, `config.yaml` defines the storage locations of other elements,
+with the following defaults:
 
-- The produced models are stored in `./models`
-- The plots of the EDA and the classification results are stored in `./images`
-- All other artifacts are stored in `./artifacts`
+- Any produced models: `./models`
+- Any plots of the EDA and the classification: `./images`
+- All other artifacts (e.g., data processing parameters): `./artifacts`
+
+If those folders are not present, they are created automatically.
+
+The logging output will be saved in a local *.log file.
 
 Author: Mikel Sagardia
 Date: 2022-06-08
@@ -89,7 +106,7 @@ sns.set()
 
 # Logging configuration
 logging.basicConfig(
-    filename='./logs/churn_library.log', # filename, where it's dumped
+    filename='./churn_library.log', # filename, where it's dumped
     level=logging.INFO, # minimum level I log
     filemode='w',
     # https://docs.python.org/3/library/logging.html
@@ -791,13 +808,11 @@ def run_setup(config_filename="config.yaml"):
     # artifact_path: ./artifacts
     # model_output_path: ./models
     # eval_output_path: ./images/results
-    # ./logs
     folders = [config["data_path"],
                config["eda_output_path"],
                config["artifact_path"],
                config["model_output_path"],
-               config["eval_output_path"],
-               "./logs"]
+               config["eval_output_path"]]
     for folder in folders:
         if not os.path.exists(folder):
             os.makedirs(folder)

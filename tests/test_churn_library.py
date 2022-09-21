@@ -23,14 +23,14 @@ Clean code principles are guaranteed in the project
 
 PEP8 conventions checked with:
 
->> pylint test_churn_library.py.py # 8.48/10
->> autopep8 test_churn_library.py.py
+>> pylint tests/test_churn_library.py.py # 8.43/10
+>> autopep8 tests/test_churn_library.py.py
 
 Since the we use the logging module in the tests,
 the testing file must be called explicitly,
 not with `pytest` alone:
 
->> python test_churn_library.py
+>> python tests/test_churn_library.py
 
 Note that the "__main__" calls pytest.
 Additionally, note that the testing configuration fixtures
@@ -44,13 +44,17 @@ To install pytest:
 >> pip install -U pytest
 
 The script expects the proper dataset to be located in `./data`
+or the folder specified in `config.yaml`.
 
-Additionally:
+Additionally, `config.yaml` defines the storage locations of other elements,
+with the following defaults:
 
-- Any produced models are stored in `./models`
-- Any plots of the EDA and the classification results are stored in `./images/`
-- Logs are stored in `./logs/`
-- All other artifacts (e.g., data processing parameters) are stored in `./artifacts/`
+- Any produced models: `./models`
+- Any plots of the EDA and the classification: `./images`
+- Logs: `./logs`
+- All other artifacts (e.g., data processing parameters): `./artifacts`
+
+If those folders are not present, they are created automatically.
 
 Author: Mikel Sagardia
 Date: 2022-06-08
@@ -66,24 +70,29 @@ import joblib
 import pytest
 import numpy as np
 
-#from customer_churn.transformations import MeanImputer, ModeImputer, CategoryEncoder
-#import customer_churn.transformations as tf
-
 # Logging configuration
+# Note: since we use the logging module,
+# the testing file must be called explicitly:
+# >> python tests/test_churn_library.py
 logging.basicConfig(
-    filename='./logs/test_churn_library.log', # filename, where it's dumped
+    filename='./test_churn_library.log', # filename, where it's dumped
     level=logging.INFO, # minimum level I log
     filemode='w',
     # https://docs.python.org/3/library/logging.html
     # logger - time - level - our message
     format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 
-# IMPORTANT: the file conftest.py defines the fixtures used in here!
+# IMPORTANT: the file conftest.py defines the fixtures used in here
+# and it contains the necessary imports!
 
 ### -- Tests -- ###
 
 def test_run_setup(config_filename, run_setup):
     '''Test project setup function.
+
+    IMPORTANT: This test needs to be run first, because it checks/creates
+    the necessary folders and it loads the configuration file into a shared
+    pytest object, which is used by the fixtures defined in conftest.py.
 
     Input:
         config_filename (function object): fixture function which returns the path
@@ -100,13 +109,11 @@ def test_run_setup(config_filename, run_setup):
     # artifact_path: ./artifacts
     # model_output_path: ./models
     # eval_output_path: ./images/results
-    # ./logs
     folders = [pytest.config_dict["data_path"],
                pytest.config_dict["eda_output_path"],
                pytest.config_dict["artifact_path"],
                pytest.config_dict["model_output_path"],
-               pytest.config_dict["eval_output_path"],
-               "./logs"]
+               pytest.config_dict["eval_output_path"]]
     for folder in folders:
         try:
             assert os.path.exists(folder)

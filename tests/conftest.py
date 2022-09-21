@@ -2,6 +2,9 @@
 This file is read by pytest and the fixtures
 defined in it are used in all the tested files.
 
+Note that some configuration parameters are
+loaded from the file defined in config_filename().
+
 Author: Mikel Sagardia
 Date: 2022-09-20
 '''

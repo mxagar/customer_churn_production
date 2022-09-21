@@ -7,9 +7,8 @@ eda_fe_summary
 python_manual.txt
 mlops_udacity
 data_science_udacity
-images/eda/*
-images/results/*
-models/*.pkl
-artifacts/*.pkl
-logs/*.log
+images
+models
+artifacts
+*.log
 data/*_sample.csv

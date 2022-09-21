@@ -1,1 +1,0 @@
-This folder contains the processing parameters dictionary generated during the training.

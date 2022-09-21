@@ -1,1 +1,0 @@
-This folder contains the serialized model pipelines that are the product of the training.
