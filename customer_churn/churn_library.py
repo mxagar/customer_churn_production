@@ -774,7 +774,9 @@ if __name__ == "__main__":
     '''
 
     # Load the configuration file
-    with open("config.yaml", 'r') as stream:
+    config_filename = "config.yaml"
+    #config_filename = "customer_churn/config.yaml"
+    with open(config_filename, 'r') as stream:
         config = yaml.safe_load(stream)
 
     # Pipeline 1: Data Analysis and Modeling

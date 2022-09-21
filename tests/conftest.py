@@ -9,7 +9,8 @@ Date: 2022-09-20
 import pytest
 
 # Source of tested functions/classes
-import churn_library as cl
+#import churn_library as cl
+import customer_churn.churn_library as cl
 
 # Fixtures of the churn library functions.
 # Fixtures are predefined variables passed to test functions;

@@ -65,8 +65,8 @@ import joblib
 import pytest
 import numpy as np
 
-#from transformations import MeanImputer, ModeImputer, CategoryEncoder
-import transformations as tf
+#from customer_churn.transformations import MeanImputer, ModeImputer, CategoryEncoder
+#import customer_churn.transformations as tf
 
 # Logging configuration
 logging.basicConfig(
