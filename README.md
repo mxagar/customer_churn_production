@@ -2,37 +2,37 @@
 
 This repository contains a project that analyzes and predicts **Customer Churn** using the [Credit Card Customers](https://www.kaggle.com/datasets/sakshigoyal7/credit-card-customers/code) dataset from [Kaggle](https://www.kaggle.com/). 
 
-Data analysis and modeling pipelines are implemented in the project to end up with an interpretable model that is also able to predict customer churn. However, the focus of the project are neither the business case nor the analysis and modeling techniques; instead, **the goal is to provide with a boilerplate that shows how to transform a research notebook into a development/production environment code**. Also, note that not all aspects necessary in a ML worklflow are covered either:
+Data analysis, modeling and inference pipelines are implemented in the project to end up with an interpretable model that is also able to predict customer churn. However, the focus of the project are neither the business case nor the analysis and modeling techniques; instead, **the goal is to provide with a boilerplate that shows how to transform a research notebook into a development/production environment code**. Concretely, the research notebook [churn_notebook.ipynb](churn_notebook.ipynb) is transformed into a python package contained in [customer_churn](customer_churn).
 
-- The EDA and FE are very simple.
-- The data artifacts are not tracked or versioned, neither are the models or the pipelines.
-- No through pipeline is defined.
-- No through deployment nor API are performed.
+Note that not all aspects necessary in a ML worklflow are covered:
+
+- The Exploratory Data Analysis (EDA) and Feature Engineering (FE) done during the data processing are very simple.
+- The generated artifacts are not tracked or versioned (e.g., model-pipelines, processed data, etc.)
+- No through deployment nor API are performed, although Docker packaging is introduced.
 - etc.
 
 If you are interested in some of the aforementioned topics, you can visit other of my boilerplate projects listed in the section [Interesting Links](#interesting-links).
 
-The starter code comes from the [Udacity Machine Learning DevOps Engineer Nanodegree](https://www.udacity.com/course/machine-learning-dev-ops-engineer-nanodegree--nd0821).
+The starter code comes from a [Udacity Machine Learning DevOps Engineer Nanodegree](https://www.udacity.com/course/machine-learning-dev-ops-engineer-nanodegree--nd0821) project, although the initial status was substantially changed.
 
 Overview of contents:
 
 - [Predict Customer Churn Using Production-Level Code](#predict-customer-churn-using-production-level-code)
-	- [Project Description](#project-description)
-	- [Files and Workflow Description](#files-and-workflow-description)
-	- [How to Use This](#how-to-use-this)
-		- [Installation](#installation)
-		- [Running the Scripts](#running-the-scripts)
-	- [Limitations of This Boilerplate](#limitations-of-this-boilerplate)
-	- [Possible Improvements](#possible-improvements)
-	- [Interesting Links](#interesting-links)
-	- [Authorship](#authorship)
+  - [Project Description](#project-description)
+  - [Files and Workflow Description](#files-and-workflow-description)
+  - [How to Use This](#how-to-use-this)
+    - [Running the Package](#running-the-package)
+    - [Testing the Package](#testing-the-package)
+  - [Limitations of This Boilerplate](#limitations-of-this-boilerplate)
+  - [Possible Improvements](#possible-improvements)
+  - [Interesting Links](#interesting-links)
+  - [Authorship](#authorship)
 
 
 ## Project Description
 
 In the project, credit card customers that are most likely to churn are identified.  
-A first version of the data analysis and modeling is provided in a notebook.  
-**The main goal of the project is to transform the notebook content into a production ready status, applying clean code principles**:
+A first version of the data analysis and modeling is provided in the notebook [churn_notebook.ipynb](churn_notebook.ipynb). As mentioned, **the main goal of the project is to transform that notebook content into a production ready package, applying clean code principles or tools**:
 
 - Readable, simple, concise code
 - PEP8 conventions, checked with `pylint` and `autopep8`
@@ -44,12 +44,40 @@ A first version of the data analysis and modeling is provided in a notebook.
 
 The used [Credit Card Customers dataset from Kaggle](https://www.kaggle.com/datasets/sakshigoyal7/credit-card-customers/code) has the following properties:
 
-- Original dataset size: 28 columns, 10127 data points.
+- Original dataset size: 22 columns, 10127 data points.
 - It consists of categorical and numerical features of clients which churn (cease to be clients) or not; that churn status is the binary classification target used for training, encoded as the feature `Attrition_Flag`.
-- Number of features after feature engineering is carried out: 19.
-- Modelling used on the data: logistic regression and random forests with grid search.
+- Number of features after data processing is carried out: 19.
+- Modeling used on the data: logistic regression and random forests with grid search.
+
+More details on the dataset can be found in [data/README.md](data/README.md).
 
 ## Files and Workflow Description
+
+The repository contains the following files and folders:
+
+```
+.
+├── Instructions.md                     # Original instructions from Udacity
+├── README.md                           # This file
+├── churn_notebook.ipynb                # Research notebook
+├── config.yaml                         # Configuration file for production code
+├── customer_churn                      # Production library folder, package
+│   ├── __init__.py         
+│   ├── churn_library.py                # Production library
+│   └── transformations.py              # Utilities for library
+├── data
+│   ├── README.md                       # Explanation of dataset columns
+│   └── bank_data.csv                   # Dataset
+├── main.py                             # Executable of production code
+├── pics
+│   └── sequencediagram_org.jpeg        # Original/old sequence diagram
+├── requirements.txt                    # Dependencies
+├── setup.py
+└── tests                               # Pytest testing scripts
+    ├── __init__.py
+    ├── conftest.py                     # Pytest fixtures
+    └── test_churn_library.py           # Tests of the module churn_library.py
+```
 
 All the research work of the project is contained in the notebook [`churn_notebook.ipynb`](churn_notebook.ipynb); in particular simplified implementations of the typical data processing and modeling tasks are performed:
 
@@ -59,114 +87,94 @@ All the research work of the project is contained in the notebook [`churn_notebo
 - Training: Random Forest and Logistic Regression models are fit and the models are persisted as pickles.
 - Generation of classification report plots.
 
-The code from [`churn_notebook.ipynb`](churn_notebook.ipynb) is modified for a production environment and transferred to the following modules:
+The code from [`churn_notebook.ipynb`](churn_notebook.ipynb) has been transformed to create the package [`customer_churn`](customer_churn), which contains two files:
 
-- [`churn_library.py`](churn_library.py): this file contains the refactored and transformed code from [`churn_notebook.ipynb`](churn_notebook.ipynb).
-- [`churn_script_logging_and_tests.py`](churn_script_logging_and_tests.py): this file applies tests to the functions defined in [`churn_library.py`](churn_library.py).
+- [`churn_library.py`](customer_churn/churn_library.py): this file contains most of the refactored and modified code from the notebook.
+- [`transformations.py`](customer_churn/transformations.py): definition of auxiliary transformations used in the data processing.
 
-The `main()` function in [`churn_library.py`](churn_library.py) calls two functions:
+Additionally, a [`tests`](tests) folder is provided, which contains [`test_churn_library.py`](tests/test_churn_library.py). This script performs unit tests on the different functions of [`churn_library.py`](customer_churn/churn_library.py) using [pytest](https://docs.pytest.org/).
 
-1. `modeling()`, which performs the EDA and generates the inference artifacts (the model/pipeline),
-2. and `inference()`, which shows how the inference artifacts need to be used to perform a prediction.
+The executable or `main` function is provided in [`main.py`](main.py); this script imports the package [`customer_churn`](customer_churn) and runs three functions from [`churn_library.py`](customer_churn/churn_library.py):
 
-The following sequence diagram shows the workflow in the `modeling()` function from [`churn_library.py`](churn_library.py):
+1. `run_setup()`: the configuration file [`config.yaml`](config.yaml) is loaded and auxiliary folders are created, if not there yet:
+   - `images`: it will contain the images of the EDA and the model evaluation.
+   - `models`: it will contain the inference models/pipelines as serialized pickles.
+   - `artifacts`: it will contain the data processing parameters created during the training and required for the inference, serialized as pickles.
+2. `run_training()`: it performs the EDA, the data processing and the data modeling, and it generates the inference artifacts (the model/pipeline).
+3. `run_inference()`: it shows how the inference artifacts need to be used to perform a prediction; an exemplary dataset sample created during the training is used.
 
-![Sequence Diagram of modeling() in churn_library.py](./images/../pics/sequencediagram.jpeg)
+The following diagram shows the workflow
 
-Similarly, the following sequence diagram shows the workflow in the `inference()` function from [`churn_library.py`](churn_library.py):
-
-![Sequence Diagram of inference() in churn_library.py](./images/../pics/sequencediagram.jpeg)
-
-Finally, these files and folders are also present in the repository:
-
-- `requirements_py*.txt`: dependencies to be installed (see section below)
-- `README.md`: this documentation file
-- `Instructions.md`: a summary of `Guide.ipynb` and the project requirements defined by Udacity
-- `data/`: folder where the dataset is stored
-- `images/`: folder for the EDA and classification report images
-- `models/`: folder where the generated models are stored as pickle objects
-- `logs/`: folder for the log files
+IMAGE
 
 ## How to Use This
-### Installation
+### Running the Package
 
-First, decide between python 3.6 and 3.8; then, create an environment (e.g., with [conda](https://docs.conda.io/en/latest/)), and install the dependencies:
+First, create an environment (e.g., with [conda](https://docs.conda.io/en/latest/)), and install the dependencies:
 
 ```bash
-conda create -n my-env python=3.6.3
+cd /path/to/repository/folder
+# Create the environment
+conda create -n my-env python=3.8
 conda activate my-env
 conda install pip
-# Note: I had to modify the matplotlib version: 2.10 -> 2.2.0
-~/opt/anaconda3/envs/my-env/bin/pip install -r requirements_py3.6.txt
-conda install jupyter jupyterlab
-~/opt/anaconda3/envs/my-env/bin/pip install -U pytest
+# Check that the pip we use points to our environment
+which pip
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-The dependencies are:
-
-```
-Python 3.6:
-
-scikit-learn==0.22       
-shap==0.40.0     
-joblib==0.11
-pandas==0.23.3
-numpy==1.19.5 
-matplotlib==2.2.0      
-seaborn==0.11.2
-pylint==2.7.4
-autopep8==1.5.6
-
-Python 3.8:
-
-scikit-learn==0.24.1
-shap==0.40.0
-joblib==1.0.1
-pandas==1.2.4
-numpy==1.20.1
-matplotlib==3.3.4
-seaborn==0.11.2
-pylint==2.7.4
-autopep8==1.5.6
-```
-
-### Running the Scripts
-
-Basically, the processing from the notebook [`churn_notebook.ipynb`](churn_notebook.ipynb) has been transferred to the module [`churn_library.py`](churn_library.py), which also performs additional tasks. To **run that data analysis and modeling module**:
+Then, we execute the main file:
 
 ```bash
-python churn_library.py
+python main.py
 ```
 
-This command should generate EDA and classification report images, as well as model pickles in their respective folders (see above).
-
-To **test the functions in the data analysis and modeling library** using `pytest`:
+Optionally, you can install the package on your environment:
 
 ```bash
-python churn_script_logging_and_tests.py
+cd /path/to/repository/folder
+conda activate my-env
+# The first installation
+pip install .
+# If we change things in the package
+pip install --upgrade .
 ```
 
-This command tests the functions from `churn_library.py`: in addition to generating all the aforementioned artifacts, checks are performed to assure code reliability.
-
-In contrast to standard `pytest` environments, here
-
-- the testing file is *not* prefixed with `test_`
-- the testing configuration happens in the testing file itself, not in `conftest.py`
-- and the testing functions have logging.
-
-Thus, it is not enough running barely `pytest` in the Terminal. The main reason why this is so is to enable logging during testing.
-
-If you would like to **check the PEP8 conformity** of the files:
+If the package is installed, we can work anywhere if we have the dataset and the configuration file:
 
 ```bash
-pylint churn_library.py # should yield 8.30/10
-pylint churn_script_logging_and_tests.py # should yield 7.86/10
+cd /path/to/new/folder
+cp -r /path/to/repository/folder/data .
+cp /path/to/repository/folder/main.py .
+cp /path/to/repository/folder/config.yaml .
+python main.py
+```
+
+### Testing the Package
+
+To test the functions from [`churn_library.py`](customer_churn/churn_library.py) using `pytest`:
+
+```bash
+cd /path/to/repository/folder
+python tests/test_churn_library.py
+```
+
+This command not only tests the package, but it also fully runs the training and inference pipelines, generating models and other artifacts.
+
+Note that, since the `logging` module is used, it is not enough running barely `pytest` in the Terminal, we need to run the command above to test the package.
+
+If you would like to check the PEP8 conformity of the files:
+
+```bash
+pylint customer_churn/churn_library.py # should yield 8.07/10
+pylint tests/test_churn_library.py # should yield 8.49/10
 ```
 
 Tip: If you'd like to automatically edit and improve the score of a file that already has a good score, you can try `autopep8`:
 
 ```bash
-autopep8 --in-place --aggressive --aggressive churn_library.py
+autopep8 --in-place --aggressive --aggressive customer_churn/churn_library.py
 ```
 
 ## Limitations of This Boilerplate
@@ -174,6 +182,8 @@ autopep8 --in-place --aggressive --aggressive churn_library.py
 - No tracking of datasets / models / artifacts.
 - Maybe `Pipeline` could be used.
 - No serving.
+
+If you are interested in those topics, please visit the section [Interesting Links](#interesting-links).
 
 ## Possible Improvements
 
@@ -183,11 +193,12 @@ autopep8 --in-place --aggressive --aggressive churn_library.py
 - [x] Re-factor data processing function to be able to run it during training or inference.
 - [x] Add logging to pipeline executions, too, not only to the testing module.
 - [x] Create a `conftest.py` file for testing.
-- [x] Move function parameters to a YAML configuration file. The testing configuration file `conftest.py` should read from it, too?
-- [ ] Create a python package.
+- [x] Move function parameters to a YAML configuration file.
+- [x] Create a python package.
+- [x] Update `README.md` with new contents: new files, new execution commands, etc.
 - [ ] Draw new sequence diagram.
 - [ ] Create a docker image and usage instructions with docker-compose.
-- [ ] Update `README.md` with new contents: new files, new execution commands, etc.
+- [ ] Further parametrize all hard-coded variables from `conftest.py` and include them in `config.yaml`; a `config` object should be passed to the functions in `churn_library.py` to avoid hard-coding.
 - [ ] Further re-factor functions; e.g., some EDA plot generations contain repeated computations that can be parametrized.
 - [ ] Work towards `pylint` score of 10/10. However, note that some variable names were chosen to be non-PEP8-conform due to their popular use in the field (e.g., `X_train`).
 
