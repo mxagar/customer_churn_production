@@ -804,8 +804,14 @@ def run_setup(config_filename="config.yaml"):
     
     return config
 
-if __name__ == "__main__":
-    '''Two pipelines are executed one after the other:
+def run(config_filename="config.yaml"):
+    '''This function runs the complete customer churn library.
+    
+    First, the setup is carried out:
+    - the configuration file is loaded
+    - and the existence of necessary folders is checked.
+    
+    Then, two pipelines are executed one after the other:
     (1) model generation/training
     (2) and exemplary inference.
 
@@ -813,8 +819,7 @@ if __name__ == "__main__":
     and simply run the inference (pipeline 2).
     '''
     
-    # Load the configuration file
-    config_filename = "config.yaml"
+    # Load the configuration file and check/set folders
     config = run_setup(config_filename=config_filename)
 
     # Pipeline 1: Data Analysis and Modeling
