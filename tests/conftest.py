@@ -17,6 +17,11 @@ import customer_churn.churn_library as cl
 # in this case, most variables are functions/classes to be tested.
 
 @pytest.fixture
+def config_filename():
+    '''Configuration filename'''
+    return "config.yaml"
+
+@pytest.fixture
 def dataset_path_train():
     '''Dataset path for training'''
     return "./data/bank_data.csv"
@@ -54,6 +59,11 @@ def expected_eda_images():
             'age_dist.png',
             'churn_dist.png',
             'marital_status_dist.png']
+
+@pytest.fixture
+def run_setup():
+    '''run_setup function from churn_library'''
+    return cl.run_setup
 
 @pytest.fixture
 def perform_eda():
@@ -133,6 +143,11 @@ def split():
     '''split function from churn_library'''
     return cl.split
 
+def config_dict_plugin():
+    '''Initialize pytest project config container as None
+    '''
+    return None
+
 def df_plugin():
     '''Initialize pytest dataset container df as None'''
     return None
@@ -154,7 +169,9 @@ def pytest_configure():
     - `pytest.df`
     - `pytest.splits`
     - `pytest.model`
+    - `pytest.config_dict`
     '''
     pytest.df = df_plugin() # we can access & modify pytest.df in test functions!
     pytest.splits = splits_plugin()
     pytest.models = models_plugin()
+    pytest.config_dict = config_dict_plugin()

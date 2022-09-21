@@ -5,7 +5,8 @@ Credit Card Customers dataset from Kaggle:
 
 https://www.kaggle.com/datasets/sakshigoyal7/credit-card-customers/code
 
-Altogether, 6 unit tests are defined using pytest:
+Altogether, 7 unit tests are defined using pytest:
+- test_run_setup(run_setup)
 - test_import(import_data)
 - test_eda(perform_eda)
 - test_perform_data_processing(perform_data_processing)
@@ -80,6 +81,37 @@ logging.basicConfig(
 # IMPORTANT: the file conftest.py defines the fixtures used in here!
 
 ### -- Tests -- ###
+
+def test_run_setup(config_filename, run_setup):
+    '''Test project setup function.
+
+    Input:
+        config_filename (function object): fixture function which returns the path
+            of the configuration file
+        run_setup (function object): fixture function which returns the function to test
+    Output:
+        None
+    '''
+    pytest.config_dict = run_setup(config_filename=config_filename)
+    
+    # Check folders
+    # data_path: ./data
+    # eda_output_path: ./images/eda
+    # artifact_path: ./artifacts
+    # model_output_path: ./models
+    # eval_output_path: ./images/results
+    # ./logs
+    folders = [pytest.config_dict["data_path"],
+               pytest.config_dict["eda_output_path"],
+               pytest.config_dict["artifact_path"],
+               pytest.config_dict["model_output_path"],
+               pytest.config_dict["eval_output_path"],
+               "./logs"]
+    for folder in folders:
+        try:
+            assert os.path.exists(folder)
+        except AssertionError as err:
+            logging.error("TESTING run_setup: ERROR - Necessary folders are not in place: %s", folder)
 
 def test_import_data(import_data, dataset_path_train, dataset_path_inference):
     '''Test data import.
