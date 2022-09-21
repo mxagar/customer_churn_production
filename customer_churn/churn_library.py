@@ -31,7 +31,7 @@ Clean code principles are guaranteed:
 
 PEP8 conventions checked with:
 
->> pylint churn_library.py # 7.96/10
+>> pylint churn_library.py # 8.07/10
 >> autopep8 churn_library.py
 
 This file cannot be run stand-alone;
@@ -801,7 +801,7 @@ def run_setup(config_filename="config.yaml"):
     except FileNotFoundError as err:
         logging.error("run_setup: Configuration file not found: %s.", config_filename)
         return None
-    
+
     # Check folders
     # data_path: ./data
     # eda_output_path: ./images/eda
@@ -816,16 +816,16 @@ def run_setup(config_filename="config.yaml"):
     for folder in folders:
         if not os.path.exists(folder):
             os.makedirs(folder)
-    
+
     return config
 
 def run(config_filename="config.yaml"):
     '''This function runs the complete customer churn library.
-    
+
     First, the setup is carried out:
     - the configuration file is loaded
     - and the existence of necessary folders is checked.
-    
+
     Then, two pipelines are executed one after the other:
     (1) model generation/training
     (2) and exemplary inference.
@@ -833,7 +833,7 @@ def run(config_filename="config.yaml"):
     If the models have been generated (pipeline 1), we can comment its call out
     and simply run the inference (pipeline 2).
     '''
-    
+
     # Load the configuration file and check/set folders
     config = run_setup(config_filename=config_filename)
 

@@ -23,7 +23,7 @@ Clean code principles are guaranteed in the project
 
 PEP8 conventions checked with:
 
->> pylint tests/test_churn_library.py.py # 8.43/10
+>> pylint tests/test_churn_library.py.py # 8.49/10
 >> autopep8 tests/test_churn_library.py.py
 
 Since the we use the logging module in the tests,
@@ -51,10 +51,11 @@ with the following defaults:
 
 - Any produced models: `./models`
 - Any plots of the EDA and the classification: `./images`
-- Logs: `./logs`
 - All other artifacts (e.g., data processing parameters): `./artifacts`
 
 If those folders are not present, they are created automatically.
+
+The logging output will be saved in a local *.log file.
 
 Author: Mikel Sagardia
 Date: 2022-06-08
@@ -102,7 +103,7 @@ def test_run_setup(config_filename, run_setup):
         None
     '''
     pytest.config_dict = run_setup(config_filename=config_filename)
-    
+
     # Check folders
     # data_path: ./data
     # eda_output_path: ./images/eda
