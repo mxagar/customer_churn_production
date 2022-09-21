@@ -24,27 +24,44 @@ def config_filename():
 @pytest.fixture
 def dataset_path_train():
     '''Dataset path for training'''
-    return "./data/bank_data.csv"
+    #return "./data/bank_data.csv"
+    return pytest.config_dict["dataset_filename"]
 
 @pytest.fixture
 def dataset_path_inference():
     '''Dataset path for inference'''
-    return "./data/bank_data_sample.csv"
-
-@pytest.fixture
-def import_data():
-    '''import_data function from churn_library'''
-    return cl.import_data
+    #return "./data/bank_data_sample.csv"
+    return pytest.config_dict["dataset_sample_filename"]
 
 @pytest.fixture
 def eda_path():
     '''Path where EDA images are saved'''
-    return './images/eda'
+    #return './images/eda'
+    return pytest.config_dict["eda_output_path"]
 
 @pytest.fixture
 def artifact_path():
     '''Path where the processing artifacts images are saved'''
-    return './artifacts'
+    #return './artifacts'
+    return pytest.config_dict["artifact_path"]
+
+@pytest.fixture
+def response():
+    '''Response/Target variable name'''
+    #return "Churn"
+    return pytest.config_dict["response"]
+
+@pytest.fixture
+def models_path():
+    '''Path where models are stored'''
+    #return './models'
+    return pytest.config_dict["model_output_path"]
+
+@pytest.fixture
+def results_path():
+    '''Path where result images are stored'''
+    #return './images/results'
+    return pytest.config_dict["eval_output_path"]
 
 @pytest.fixture
 def expected_artifact():
@@ -61,16 +78,6 @@ def expected_eda_images():
             'marital_status_dist.png']
 
 @pytest.fixture
-def run_setup():
-    '''run_setup function from churn_library'''
-    return cl.run_setup
-
-@pytest.fixture
-def perform_eda():
-    '''perform_eda function from churn_library'''
-    return cl.perform_eda
-
-@pytest.fixture
 def category_lst():
     '''List of categorical features'''
     return ['Gender',
@@ -80,29 +87,9 @@ def category_lst():
             'Card_Category']
 
 @pytest.fixture
-def response():
-    '''Response/Target variable name'''
-    return "Churn"
-
-@pytest.fixture
 def num_features():
     '''Number of final features'''
     return 19
-
-@pytest.fixture
-def perform_data_processing():
-    '''perform_data_processing function from churn_library'''
-    return cl.perform_data_processing
-
-@pytest.fixture
-def models_path():
-    '''Path where models are stored'''
-    return './models'
-
-@pytest.fixture
-def results_path():
-    '''Path where result images are stored'''
-    return './images/results'
 
 @pytest.fixture
 def expected_models():
@@ -117,6 +104,26 @@ def expected_result_images():
             'lr_classification_report.png',
             'feature_importance_random_forest.png',
             'roc_plots.png']
+
+@pytest.fixture
+def import_data():
+    '''import_data function from churn_library'''
+    return cl.import_data
+
+@pytest.fixture
+def run_setup():
+    '''run_setup function from churn_library'''
+    return cl.run_setup
+
+@pytest.fixture
+def perform_eda():
+    '''perform_eda function from churn_library'''
+    return cl.perform_eda
+
+@pytest.fixture
+def perform_data_processing():
+    '''perform_data_processing function from churn_library'''
+    return cl.perform_data_processing
 
 @pytest.fixture
 def train_models():
