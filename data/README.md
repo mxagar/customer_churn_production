@@ -7,18 +7,19 @@ Source: [Credit Card Customers](https://www.kaggle.com/datasets/sakshigoyal7/cre
 Columns in the raw dataset (22 in total):
 
 - **Target**
-  - `Attrition_Flag`:
+  - `Attrition_Flag`: `Existing Customer`, `Attrited Customer`
 - **Dropped**:
-  - `Unnamed: 0`:
-  - `CLIENTNUM`:
-- **Numerical**/**Categorical**:
-  - `Customer_Age`:
+  - `Unnamed: 0`: copy of index
+  - `CLIENTNUM`: client ID
+- **Categorical**:
   - `Gender`:
-  - `Dependent_count`:
   - `Education_Level`:
   - `Marital_Status`:
   - `Income_Category`:
   - `Card_Category`:
+- **Numerical**
+  - `Customer_Age`:
+  - `Dependent_count`:
   - `Months_on_book`:
   - `Total_Relationship_Count`:
   - `Months_Inactive_12_mon`:

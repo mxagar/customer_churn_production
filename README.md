@@ -2,16 +2,16 @@
 
 This repository contains a project that analyzes and predicts **Customer Churn** using the [Credit Card Customers](https://www.kaggle.com/datasets/sakshigoyal7/credit-card-customers/code) dataset from [Kaggle](https://www.kaggle.com/). 
 
-Data analysis, modeling and inference pipelines are implemented in the project to end up with an interpretable model that is also able to predict customer churn. However, the focus of the project are neither the business case nor the analysis and modeling techniques; instead, **the goal is to provide with a boilerplate that shows how to transform a research notebook into a development/production environment code**. Concretely, the research notebook [churn_notebook.ipynb](churn_notebook.ipynb) is transformed into a python package contained in [customer_churn](customer_churn).
+Data analysis, modeling and inference pipelines are implemented in the project to end up with an interpretable model that is also able to predict customer churn. However, the focus of the project are neither the business case nor the analysis and modeling techniques; instead, **the goal is to provide with a boilerplate that shows how to transform a research notebook into a development/production environment code using as few additional tools as possible**. Concretely, the research notebook [churn_notebook.ipynb](churn_notebook.ipynb) is transformed into a python package contained in [customer_churn](customer_churn).
 
 Note that not all aspects necessary in a ML worklflow are covered:
 
 - The Exploratory Data Analysis (EDA) and Feature Engineering (FE) done during the data processing are very simple.
 - The generated artifacts are not tracked or versioned (e.g., model-pipelines, processed data, etc.)
-- No through deployment nor API are performed, although Docker packaging is introduced.
+- No thorough deployment nor API are created, although [docker](https://www.docker.com) containerization is introduced.
 - etc.
 
-If you are interested in some of the aforementioned topics, you can visit other of my boilerplate projects listed in the section [Interesting Links](#interesting-links).
+If you are interested in some of the aforementioned topics, you can visit other of my boilerplate projects listed in the section [Interesting Links](#interesting-links). However, let me reiterate the leitmotiv of this repository: **production-level data science code with as few tools as possible** :smile:
 
 The starter code comes from a [Udacity Machine Learning DevOps Engineer Nanodegree](https://www.udacity.com/course/machine-learning-dev-ops-engineer-nanodegree--nd0821) project, although the initial status was substantially changed.
 
@@ -23,6 +23,7 @@ Overview of contents:
   - [How to Use This](#how-to-use-this)
     - [Running the Package](#running-the-package)
     - [Testing the Package](#testing-the-package)
+    - [Good Ol' `make`](#good-ol-make)
   - [Limitations of This Boilerplate](#limitations-of-this-boilerplate)
   - [Possible Improvements](#possible-improvements)
   - [Interesting Links](#interesting-links)
@@ -49,7 +50,7 @@ The used [Credit Card Customers dataset from Kaggle](https://www.kaggle.com/data
 - Number of features after data processing is carried out: 19.
 - Modeling used on the data: logistic regression and random forests with grid search.
 
-More details on the dataset can be found in [data/README.md](data/README.md).
+More details on the dataset can be found in [`data/README.md`](data/README.md).
 
 ## Files and Workflow Description
 
@@ -57,7 +58,8 @@ The repository contains the following files and folders:
 
 ```
 .
-├── Instructions.md                     # Original instructions from Udacity
+├── Instructions.md                     # Original instructions from Udacity (irrelevant here)
+├── Makefile                            # Simple Makefile for common chores: clean, etc.
 ├── README.md                           # This file
 ├── churn_notebook.ipynb                # Research notebook
 ├── config.yaml                         # Configuration file for production code
@@ -70,7 +72,7 @@ The repository contains the following files and folders:
 │   └── bank_data.csv                   # Dataset
 ├── main.py                             # Executable of production code
 ├── pics
-│   └── sequencediagram_org.jpeg        # Original/old sequence diagram
+│   └── sequencediagram_org.jpeg        # Original/old sequence diagram from Udacity (irrelevant here)
 ├── requirements.txt                    # Dependencies
 ├── setup.py
 └── tests                               # Pytest testing scripts
@@ -110,7 +112,7 @@ IMAGE
 ## How to Use This
 ### Running the Package
 
-First, create an environment (e.g., with [conda](https://docs.conda.io/en/latest/)), and install the dependencies:
+First, create an environment (e.g., with [conda](https://docs.conda.io/en/latest/)) and install the dependencies:
 
 ```bash
 cd /path/to/repository/folder
@@ -129,6 +131,8 @@ Then, we execute the main file:
 ```bash
 python main.py
 ```
+
+... and all the magic happens, as explained in the previous section.
 
 Optionally, you can install the package on your environment:
 
@@ -177,11 +181,21 @@ Tip: If you'd like to automatically edit and improve the score of a file that al
 autopep8 --in-place --aggressive --aggressive customer_churn/churn_library.py
 ```
 
+### Good Ol' `make`
+
+Because the C-Universe had already most of the required tools.
+
+```bash
+# If you like to delete the models, artifacts, folders, etc.
+# created when the training pipelines are run
+make clean
+```
+
 ## Limitations of This Boilerplate
 
-- No tracking of datasets / models / artifacts.
-- Maybe `Pipeline` could be used.
-- No serving.
+- No tracking of datasets / models / artifacts is done. Doing that implies exposing to additional tools, such as [Weights and Biases](https://wandb.ai).
+- Maybe all the steps could be re-written in an Object Oriented style and packed in to a [Scikit-Learn](https://scikit-learn.org/stable/) `Pipeline`. However, I think that increases the complexity; I prefer to use a mixed approach in which transformations are defined in classes, while they are applied in a function.
+- No serving via API is discussed.
 
 If you are interested in those topics, please visit the section [Interesting Links](#interesting-links).
 
@@ -197,8 +211,9 @@ If you are interested in those topics, please visit the section [Interesting Lin
 - [x] Create a python package.
 - [x] Update `README.md` with new contents: new files, new execution commands, etc.
 - [ ] Draw new sequence diagram.
-- [ ] Create a docker image and usage instructions with docker-compose.
-- [ ] Further parametrize all hard-coded variables from `conftest.py` and include them in `config.yaml`; a `config` object should be passed to the functions in `churn_library.py` to avoid hard-coding.
+- [ ] Create a docker image and usage instructions with `docker-compose`.
+- [ ] **Further parametrize all hard-coded variables from `conftest.py` and include them in `config.yaml`; a `config` object should be passed to the functions in `churn_library.py` to avoid hard-coding.**
+- [ ] Explain the columns from the dataset in [`data/README.md`](data/README.md).
 - [ ] Further re-factor functions; e.g., some EDA plot generations contain repeated computations that can be parametrized.
 - [ ] Work towards `pylint` score of 10/10. However, note that some variable names were chosen to be non-PEP8-conform due to their popular use in the field (e.g., `X_train`).
 
