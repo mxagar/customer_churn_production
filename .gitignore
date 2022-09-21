@@ -12,3 +12,5 @@ models
 artifacts
 *.log
 data/*_sample.csv
+*.egg*
+build
