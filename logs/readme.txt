@@ -1,0 +1,1 @@
+This folder contains the logs from executing `churn_library.py` and `test_churn_library.py`.
