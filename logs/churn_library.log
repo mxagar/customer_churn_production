@@ -8,3 +8,19 @@ matplotlib.backends._backend_tk - 2022-09-21 10:40:31,283 - INFO - Could not loa
 root - 2022-09-21 10:40:32,686 - INFO - perform_eda: SUCCESS!
 root - 2022-09-21 10:40:32,771 - INFO - perform_data_processing: SUCCESS!
 root - 2022-09-21 10:42:44,380 - INFO - train_models: Logistic regression trained in 131.60 secs.
+root - 2022-09-21 10:45:57,955 - INFO - train_models: Random forest trained in 193.57 secs.
+root - 2022-09-21 10:45:58,120 - INFO - train_models: SUCCESS!
+matplotlib.backends._backend_tk - 2022-09-21 10:45:58,654 - INFO - Could not load matplotlib icon: bad option "foobar": must be aspect, attributes, client, colormapwindows, command, deiconify, focusmodel, forget, frame, geometry, grid, group, iconbitmap, iconify, iconmask, iconname, iconphoto, iconposition, iconwindow, manage, maxsize, minsize, overrideredirect, positionfrom, protocol, resizable, sizefrom, stackorder, state, title, transient, or withdraw
+matplotlib.backends._backend_tk - 2022-09-21 10:45:59,615 - INFO - Could not load matplotlib icon: bad option "foobar": must be aspect, attributes, client, colormapwindows, command, deiconify, focusmodel, forget, frame, geometry, grid, group, iconbitmap, iconify, iconmask, iconname, iconphoto, iconposition, iconwindow, manage, maxsize, minsize, overrideredirect, positionfrom, protocol, resizable, sizefrom, stackorder, state, title, transient, or withdraw
+root - 2022-09-21 10:46:00,512 - INFO - classification_report_image: SUCCESS!
+matplotlib.backends._backend_tk - 2022-09-21 10:46:00,527 - INFO - Could not load matplotlib icon: bad option "foobar": must be aspect, attributes, client, colormapwindows, command, deiconify, focusmodel, forget, frame, geometry, grid, group, iconbitmap, iconify, iconmask, iconname, iconphoto, iconposition, iconwindow, manage, maxsize, minsize, overrideredirect, positionfrom, protocol, resizable, sizefrom, stackorder, state, title, transient, or withdraw
+matplotlib.backends._backend_tk - 2022-09-21 10:46:00,571 - INFO - Could not load matplotlib icon: bad option "foobar": must be aspect, attributes, client, colormapwindows, command, deiconify, focusmodel, forget, frame, geometry, grid, group, iconbitmap, iconify, iconmask, iconname, iconphoto, iconposition, iconwindow, manage, maxsize, minsize, overrideredirect, positionfrom, protocol, resizable, sizefrom, stackorder, state, title, transient, or withdraw
+root - 2022-09-21 10:46:01,238 - INFO - roc_curve_plot: SUCCESS!
+matplotlib.backends._backend_tk - 2022-09-21 10:46:01,270 - INFO - Could not load matplotlib icon: bad option "foobar": must be aspect, attributes, client, colormapwindows, command, deiconify, focusmodel, forget, frame, geometry, grid, group, iconbitmap, iconify, iconmask, iconname, iconphoto, iconposition, iconwindow, manage, maxsize, minsize, overrideredirect, positionfrom, protocol, resizable, sizefrom, stackorder, state, title, transient, or withdraw
+root - 2022-09-21 10:46:08,118 - INFO - feature_importance_plot: SUCCESS!
+root - 2022-09-21 10:46:08,119 - INFO - evaluate_models: SUCCESS!
+root - 2022-09-21 10:46:08,119 - INFO - run_training: SUCCESS!
+root - 2022-09-21 10:46:08,137 - INFO - import_data: SUCCESS!
+root - 2022-09-21 10:46:08,312 - INFO - load_model_pipeline: SUCCESS!
+root - 2022-09-21 10:46:08,336 - INFO - perform_data_processing: SUCCESS!
+root - 2022-09-21 10:46:08,356 - INFO - run_inference: SUCCESS!

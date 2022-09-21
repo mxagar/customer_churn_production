@@ -5,8 +5,9 @@
 # has also hard-coded parameters; the content
 # in the fixtures of test_churn_library.py
 # must be consistent with this YAML file!
-dataset_path: ./data/bank_data.csv
-dataset_path_sample: ./data/bank_data_sample.csv
+data_path: ./data
+dataset_filename: ./data/bank_data.csv
+dataset_sample_filename: ./data/bank_data_sample.csv
 response: Churn
 eda_output_path: ./images/eda
 artifact_path: ./artifacts
