@@ -50,6 +50,7 @@ Author: Mikel Sagardia
 Date: 2022-06-08
 '''
 
+from codecs import escape_encode
 import os
 import time
 #os.environ['QT_QPA_PLATFORM']='offscreen'
@@ -78,7 +79,8 @@ from sklearn.model_selection import GridSearchCV
 
 from sklearn.metrics import plot_roc_curve, classification_report
 
-from transformations import MeanImputer, ModeImputer, CategoryEncoder
+#from transformations import MeanImputer, ModeImputer, CategoryEncoder
+from .transformations import MeanImputer, ModeImputer, CategoryEncoder
 
 # Set library/module options
 os.environ['QT_QPA_PLATFORM']='offscreen'
@@ -676,7 +678,7 @@ def run_training(config):
     # If not specified explicitly,
     # a sample with the first 10 entries (_sample.csv)
     # is saved for testing inference
-    DATASET_PATH = config["dataset_path"] # "./data/bank_data.csv"
+    DATASET_PATH = config["dataset_filename"] # "./data/bank_data.csv"
     print(f"\nLoading dataset...\t{DATASET_PATH}")
     df = import_data(DATASET_PATH, save_sample=True)
 
@@ -738,7 +740,7 @@ def run_inference(config):
     print("\n### INFERENCE PIPELINE ###")
 
     # Load sample dataset
-    DATASET_PATH = config["dataset_path_sample"] # "./data/bank_data_sample.csv"
+    DATASET_PATH = config["dataset_sample_filename"] # "./data/bank_data_sample.csv"
     print(f"\nLoading exemplary dataset...\t{DATASET_PATH}")
     df = import_data(DATASET_PATH, save_sample=False)
 
@@ -764,6 +766,44 @@ def run_inference(config):
 
     logging.info("run_inference: SUCCESS!")
 
+def run_setup(config_filename="config.yaml"):
+    """Loads configuration file and check that all folders exist;
+    if not, create them
+
+    Input:
+        config_filename (str, optional): path to the configuration file
+            Defaults to "config.yaml"
+
+    Output:
+        config (dictionary): configuration parameters
+    """
+    # Load the configuration file
+    try:
+        with open(config_filename, 'r') as stream:
+            config = yaml.safe_load(stream)
+    except FileNotFoundError as err:
+        logging.error("run_setup: Configuration file not found: %s.", config_filename)
+        return None
+    
+    # Check folders
+    # data_path: ./data
+    # eda_output_path: ./images/eda
+    # artifact_path: ./artifacts
+    # model_output_path: ./models
+    # eval_output_path: ./images/results
+    # ./logs
+    folders = [config["data_path"],
+               config["eda_output_path"],
+               config["artifact_path"],
+               config["model_output_path"],
+               config["eval_output_path"],
+               "./logs"]
+    for folder in folders:
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+    
+    return config
+
 if __name__ == "__main__":
     '''Two pipelines are executed one after the other:
     (1) model generation/training
@@ -772,12 +812,10 @@ if __name__ == "__main__":
     If the models have been generated (pipeline 1), we can comment its call out
     and simply run the inference (pipeline 2).
     '''
-
+    
     # Load the configuration file
     config_filename = "config.yaml"
-    #config_filename = "customer_churn/config.yaml"
-    with open(config_filename, 'r') as stream:
-        config = yaml.safe_load(stream)
+    config = run_setup(config_filename=config_filename)
 
     # Pipeline 1: Data Analysis and Modeling
     # Dataset is loaded and analyzed; models and artifacts are created.
