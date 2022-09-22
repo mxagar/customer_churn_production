@@ -24,6 +24,7 @@ Overview of contents:
     - [Running the Package](#running-the-package)
     - [Testing the Package](#testing-the-package)
     - [Good Ol' `make`](#good-ol-make)
+    - [Docker Image](#docker-image)
   - [Limitations of This Boilerplate](#limitations-of-this-boilerplate)
   - [Possible Improvements](#possible-improvements)
   - [Interesting Links](#interesting-links)
@@ -107,7 +108,7 @@ The executable or `main` function is provided in [`main.py`](main.py); this scri
 
 The following diagram shows the workflow
 
-IMAGE
+![Pipeline Diagram](./pics/pipeline_diagram.png)
 
 ## How to Use This
 ### Running the Package
@@ -133,6 +134,14 @@ python main.py
 ```
 
 ... and all the magic happens, as explained in the previous section.
+
+Note that EDA and model evaluation are optional and can be controlled with the argument `--produce_images` in `main.py`; by default, they are active, if we'd like to switch them off:
+
+```bash
+python main.py --produce_images 0
+```
+
+Switching off EDA and evaluation is important for the Docker container: saving matplotlib figures is not that trivial in a container and requires a more sophisticated setup than the one explained in [Docker Image](#Docker-Image).
 
 Optionally, you can install the package on your environment:
 
@@ -180,7 +189,6 @@ Tip: If you'd like to automatically edit and improve the score of a file that al
 ```bash
 autopep8 --in-place --aggressive --aggressive customer_churn/churn_library.py
 ```
-
 ### Good Ol' `make`
 
 Because the C-Universe had already most of the required tools.
@@ -189,6 +197,17 @@ Because the C-Universe had already most of the required tools.
 # If you like to delete the models, artifacts, folders, etc.
 # created when the training pipelines are run
 make clean
+```
+
+### Docker Image
+
+
+
+```bash
+# Build image
+docker image build -t customer_churn_app .
+# Run with shell access and remove when finished
+docker container run -it --rm --name customer_churn_app customer_churn_app
 ```
 
 ## Limitations of This Boilerplate
@@ -220,7 +239,7 @@ If you are interested in those topics, please visit the section [Interesting Lin
 ## Interesting Links
 
 - Guide on EDA, Data Cleaning and Feature Engineering: [eda_fe_summary](https://github.com/mxagar/eda_fe_summary).
-- A boilerplate for reproducible ML pipelines with MLflow and Weights & Biases which uses a music genre classification dataset from Spotify: [music_genre_classification](https://github.com/mxagar/music_genre_classification).
+- A boilerplate for reproducible (tracked) ML pipelines with MLflow and Weights & Biases which uses a music genre classification dataset from Spotify: [music_genre_classification](https://github.com/mxagar/music_genre_classification).
 - My notes on the [Udacity Machine Learning DevOps Engineering Nanodegree](https://www.udacity.com/course/machine-learning-dev-ops-engineer-nanodegree--nd0821), which features more MLOps content: [mlops_udacity](https://github.com/mxagar/mlops_udacity).
 ## Authorship
 
