@@ -99,12 +99,12 @@ Additionally, a [`tests`](tests) folder is provided, which contains [`test_churn
 
 The executable or `main` function is provided in [`main.py`](main.py); this script imports the package [`customer_churn`](customer_churn) and runs three functions from [`churn_library.py`](customer_churn/churn_library.py):
 
-1. `run_setup()`: the configuration file [`config.yaml`](config.yaml) is loaded and auxiliary folders are created, if not there yet:
+0. `run_setup()`: the configuration file [`config.yaml`](config.yaml) is loaded and auxiliary folders are created, if not there yet:
    - `images`: it will contain the images of the EDA and the model evaluation.
    - `models`: it will contain the inference models/pipelines as serialized pickles.
    - `artifacts`: it will contain the data processing parameters created during the training and required for the inference, serialized as pickles.
-2. `run_training()`: it performs the EDA, the data processing and the data modeling, and it generates the inference artifacts (the model/pipeline).
-3. `run_inference()`: it shows how the inference artifacts need to be used to perform a prediction; an exemplary dataset sample created during the training is used.
+1. `run_training()`: it performs the EDA, the data processing and the data modeling, and it generates the inference artifacts (the model/pipeline).
+2. `run_inference()`: it shows how the inference artifacts need to be used to perform a prediction; an exemplary dataset sample created during the training is used.
 
 The following diagram shows the workflow
 
