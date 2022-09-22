@@ -59,6 +59,7 @@ The repository contains the following files and folders:
 
 ```
 .
+├── Dockerfile                          # Docker image definition
 ├── Instructions.md                     # Original instructions from Udacity (irrelevant here)
 ├── Makefile                            # Simple Makefile for common chores: clean, etc.
 ├── README.md                           # This file
@@ -73,6 +74,7 @@ The repository contains the following files and folders:
 │   └── bank_data.csv                   # Dataset
 ├── main.py                             # Executable of production code
 ├── pics
+│   ├── pipeline_diagram.png            # Pipeline diagram
 │   └── sequencediagram_org.jpeg        # Original/old sequence diagram from Udacity (irrelevant here)
 ├── requirements.txt                    # Dependencies
 ├── setup.py
@@ -110,6 +112,15 @@ The following diagram shows the workflow
 
 ![Pipeline Diagram](./pics/pipeline_diagram.png)
 
+A central property of the package is that `run_training()` and `run_inference()` share the function `perform_data_processing()`. When `perform_data_processing()` is executed in `run_training()`, it generates the processing parameters and stores them to disk. In contrast, when `perform_data_processing()` is executed in `run_inference()`, it loads those stored parameters to perform the data processing for the inference.
+
+Note that `run_inference()` is not very useful in its current state, because of the following limitations:
+
+- It reads a sample dataset from a `CSV` file, instead of waiting for requests.
+- It loads the data processing parameters and the model pipeline every time new data needs to be scored, instead of keeping them model in memory.
+
+Those limitations are to be fixed when deploying the model, which is not in the scope of this repository; in other words, I decided to leave those loose ends in order to adapt the boilerplate to particular deployment tools. However, containerization with [docker](https://www.docker.com) is briefly shown in [Docker Image](#docker-image).
+
 ## How to Use This
 ### Running the Package
 
@@ -135,13 +146,13 @@ python main.py
 
 ... and all the magic happens, as explained in the previous section.
 
-Note that EDA and model evaluation are optional and can be controlled with the argument `--produce_images` in `main.py`; by default, they are active, if we'd like to switch them off:
+Note that the EDA and the model evaluation are optional and can be controlled with the argument `--produce_images` in `main.py`; by default, they are active, if we'd like to switch them off, we need to run:
 
 ```bash
 python main.py --produce_images 0
 ```
 
-Switching off EDA and evaluation is important for the Docker container: saving matplotlib figures is not that trivial in a container and requires a more sophisticated setup than the one explained in [Docker Image](#Docker-Image).
+Switching off EDA and evaluation is important for the Docker container: saving matplotlib figures in a container requires a more sophisticated setup than the one explained in [Docker Image](#Docker-Image).
 
 Optionally, you can install the package on your environment:
 
@@ -201,22 +212,24 @@ make clean
 
 ### Docker Image
 
-
+The [Dockerfile](Dockerfile) defines a simple image based on Python 3.8 which can be built and executed as a container:
 
 ```bash
 # Build image
 docker image build -t customer_churn_app .
-# Run with shell access and remove when finished
+# Run with shell access and remove container when finished
 docker container run -it --rm --name customer_churn_app customer_churn_app
 ```
 
+As explained in [Running the Package](#running-the-package), the EDA and the model evaluation are switched off for the docker image, because saving matplotlib images requires a more sophisticated setup than the one provided.
+
 ## Limitations of This Boilerplate
 
-- No tracking of datasets / models / artifacts is done. Doing that implies exposing to additional tools, such as [Weights and Biases](https://wandb.ai).
-- Maybe all the steps could be re-written in an Object Oriented style and packed in to a [Scikit-Learn](https://scikit-learn.org/stable/) `Pipeline`. However, I think that increases the complexity; I prefer to use a mixed approach in which transformations are defined in classes, while they are applied in a function.
-- No serving via API is discussed.
+- No tracking of datasets / models / experiments / artifacts is done. Doing that is **fundamental** if we want to scale, and it implies using additional tools, such as [Weights and Biases](https://wandb.ai).
+- Maybe all the steps could be re-written in an Object Oriented style and packed in to a [Scikit-Learn](https://scikit-learn.org/stable/) `Pipeline`. However, I think that increases the complexity; I prefer to use a mixed approach in which transformations are defined in classes, while they are applied in a function. Additionally, that makes the boilerplate easier to adapt to concrete applications and frameworks other than [Scikit-Learn](https://scikit-learn.org/stable/).
+- No serving via an API is discussed.
 
-If you are interested in those topics, please visit the section [Interesting Links](#interesting-links).
+If you are interested in any of those topics, please visit the section [Interesting Links](#interesting-links).
 
 ## Possible Improvements
 
@@ -229,8 +242,8 @@ If you are interested in those topics, please visit the section [Interesting Lin
 - [x] Move function parameters to a YAML configuration file.
 - [x] Create a python package.
 - [x] Update `README.md` with new contents: new files, new execution commands, etc.
-- [ ] Draw new sequence diagram.
-- [ ] Create a docker image and usage instructions with `docker-compose`.
+- [x] Draw new sequence diagram.
+- [x] Create a docker image.
 - [ ] **Further parametrize all hard-coded variables from `conftest.py` and include them in `config.yaml`; a `config` object should be passed to the functions in `churn_library.py` to avoid hard-coding.**
 - [ ] Explain the columns from the dataset in [`data/README.md`](data/README.md).
 - [ ] Further re-factor functions; e.g., some EDA plot generations contain repeated computations that can be parametrized.
