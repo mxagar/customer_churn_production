@@ -16,9 +16,25 @@ and simply run the inference (pipeline 2).
 Author: Mikel Sagardia
 Date: 2022-09-21
 """
+import argparse
 from customer_churn import churn_library as churn
 
 if __name__ == "__main__":
 
-    config_filename="config.yaml"
-    churn.run(config_filename)
+    parser = argparse.ArgumentParser(
+        description="Run training and exemplary inference"
+    )
+
+    parser.add_argument(
+        "--produce_images", type=int, help="Whether EDA and evaluation should be carried out and images produced.", default=1
+    )
+
+    parser.add_argument(
+        "--config_filename", type=str, help="Configuration file", default="config.yaml"
+    )
+
+    args = parser.parse_args()
+
+    #config_filename = "config.yaml"
+    config_filename = args.config_filename
+    churn.run(config_filename, args.produce_images>0)
