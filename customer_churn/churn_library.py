@@ -673,19 +673,24 @@ def split(X, y):
 
     return X_train, X_test, y_train, y_test
 
-def run_training(config):
+def run_training(config, produce_images=True):
     '''Executes the complete model/pipeline generation:
     - Import dataset
-    - Exploratory Data Analysis (EDA)
+    - Exploratory Data Analysis (EDA) (if produce_images=True)
     - Data Cleaning and Feature Engineering (i.e., data processing)
     - Define and train models
+    - Evaluate models (if produce_images=True)
 
     This is an example function that carries out all the model generation pipeline.
     In a real context we would use this template function to write our own,
     passing all the paths and configuration parameters from a config file.
 
+    Note that the EDA and the evaluation are optional and are
+    triggered if produce_images=True (default).
+
     Input:
-            None
+            config (dictionary): configuration parameters
+            produce_images (boolean): whether to run EDA and evaluation and produce images
     Output:
             None
     '''
@@ -699,11 +704,12 @@ def run_training(config):
     print(f"\nLoading dataset...\t{DATASET_PATH}")
     df = import_data(DATASET_PATH, save_sample=True)
 
-    # Perform Exploratory Data Analysis (EDA)
-    # EDA report images are saved to `images/eda`
-    print("\nPerforming EDA...")
-    EDA_OUTPUT_PATH = config["eda_output_path"] # "./images/eda"
-    perform_eda(df, EDA_OUTPUT_PATH)
+    if (produce_images):
+        # Perform Exploratory Data Analysis (EDA)
+        # EDA report images are saved to `images/eda`
+        print("\nPerforming EDA...")
+        EDA_OUTPUT_PATH = config["eda_output_path"] # "./images/eda"
+        perform_eda(df, EDA_OUTPUT_PATH)
 
     # Perform Feature Engineering
     # Artifacts like transformation objects, detected features & co.
@@ -726,16 +732,17 @@ def run_training(config):
                           y_train,
                           model_output_path=MODEL_OUTPUT_PATH)
 
-    # Evaluate the models
-    # Report images saved to `images/results`
-    print("\nEvaluating...")
-    EVAL_OUTPUT_PATH = config["eval_output_path"] # "./images/results"
-    evaluate_models(X_train,
-                    X_test,
-                    y_train,
-                    y_test,
-                    models,
-                    eval_output_path=EVAL_OUTPUT_PATH)
+    if produce_images:
+        # Evaluate the models
+        # Report images saved to `images/results`
+        print("\nEvaluating...")
+        EVAL_OUTPUT_PATH = config["eval_output_path"] # "./images/results"
+        evaluate_models(X_train,
+                        X_test,
+                        y_train,
+                        y_test,
+                        models,
+                        eval_output_path=EVAL_OUTPUT_PATH)
 
     logging.info("run_training: SUCCESS!")
 
@@ -750,7 +757,7 @@ def run_inference(config):
     and answering to requests, which is not done here.
 
     Input:
-            None
+            config (dictionary): configuration parameters
     Output:
             None
     '''
@@ -761,11 +768,6 @@ def run_inference(config):
     print(f"\nLoading exemplary dataset...\t{DATASET_PATH}")
     df = import_data(DATASET_PATH, save_sample=False)
 
-    # Load model pipeline
-    MODEL_FILENAME = config["inference_model_filename"] # "./models/random_forest_model_pipe.pkl"
-    print(f"\nLoading model pipeline...\t{MODEL_FILENAME}")
-    model_pipeline = load_model_pipeline(MODEL_FILENAME)
-
     # Perform Feature Engineering
     # Artifacts like transformation objects, detected features & co.
     # are read from `./artifacts`
@@ -774,6 +776,11 @@ def run_inference(config):
     RESPONSE = config["response"] # "Churn" # Target name
     ARTIFACT_PATH = config["artifact_path"] # "./artifacts"
     X, _ = perform_data_processing(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=False)
+
+    # Load model pipeline
+    MODEL_FILENAME = config["inference_model_filename"] # "./models/random_forest_model_pipe.pkl"
+    print(f"\nLoading model pipeline...\t{MODEL_FILENAME}")
+    model_pipeline = load_model_pipeline(MODEL_FILENAME)
 
     # Predict
     print("\nInference...")
@@ -819,7 +826,7 @@ def run_setup(config_filename="config.yaml"):
 
     return config
 
-def run(config_filename="config.yaml"):
+def run(config_filename="config.yaml", produce_images=True):
     '''This function runs the complete customer churn library.
 
     First, the setup is carried out:
@@ -839,7 +846,7 @@ def run(config_filename="config.yaml"):
 
     # Pipeline 1: Data Analysis and Modeling
     # Dataset is loaded and analyzed; models and artifacts are created.
-    run_training(config)
+    run_training(config, produce_images=produce_images)
 
     # Pipeline 2: Exemplary Inference
     # Sample dataset, trained models and artifacts are loaded;
