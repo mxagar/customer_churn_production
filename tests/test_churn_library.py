@@ -7,7 +7,7 @@ https://www.kaggle.com/datasets/sakshigoyal7/credit-card-customers/code
 
 Altogether, 7 unit tests are defined using pytest:
 - test_run_setup(run_setup)
-- test_import(import_data)
+- test_import(get_data)
 - test_eda(perform_eda)
 - test_perform_data_processing(perform_data_processing)
 - test_train_models(train_models)
@@ -65,6 +65,7 @@ import os
 from os import listdir
 from os.path import isfile, join
 import logging
+from customer_churn.churn_library import load_processing_params
 import joblib
 # Without logging and with fixtures in conftest.py
 # we'd need to import pytest only in conftest.py
@@ -121,11 +122,11 @@ def test_run_setup(config_filename, run_setup):
         except AssertionError as err:
             logging.error("TESTING run_setup: ERROR - Necessary folders are not in place: %s", folder)
 
-def test_import_data(import_data, dataset_path_train, dataset_path_inference):
+def test_get_data(get_data, dataset_path_train, dataset_path_inference):
     '''Test data import.
 
     Input:
-        import_data (function object): function to be tested
+        get_data (function object): function to be tested
         dataset_path_train (function object): fixture function which returns the path
             of the dataset to be imported for training
         dataset_path_inference (function object): fixture function which returns the path
@@ -135,32 +136,32 @@ def test_import_data(import_data, dataset_path_train, dataset_path_inference):
     '''
     # Training dataset
     try:
-        df = import_data(dataset_path_train, save_sample=True)
+        df = get_data(dataset_path_train, save_sample=True)
         # Assign to pytest namespace object for further use
         pytest.df = df
-        logging.info("TESTING import_data (train): SUCCESS")
+        logging.info("TESTING get_data (train): SUCCESS")
     except FileNotFoundError as err:
-        logging.error("TESTING import_data (train): ERROR - The file wasn't found")
+        logging.error("TESTING get_data (train): ERROR - The file wasn't found")
         raise err
     try:
         assert pytest.df.shape[0] > 0
         assert pytest.df.shape[1] > 0
     except AssertionError as err:
-        logging.error("TESTING import_data (train): ERROR - File has no rows / columns")
+        logging.error("TESTING get_data (train): ERROR - File has no rows / columns")
         raise err
 
     # Inference dataset
     try:
-        df_sample = import_data(dataset_path_inference, save_sample=False)
-        logging.info("TESTING import_data (inference): SUCCESS")
+        df_sample = get_data(dataset_path_inference, save_sample=False)
+        logging.info("TESTING get_data (inference): SUCCESS")
         try:
             assert df_sample.shape[0] > 0
             assert df_sample.shape[1] > 0
         except AssertionError as err:
-            logging.error("TESTING import_data (inference): ERROR - File has no rows / columns")
+            logging.error("TESTING get_data (inference): ERROR - File has no rows / columns")
             raise err
     except FileNotFoundError as err:
-        logging.error("TESTING import_datas (inference): ERROR - The file wasn't found")
+        logging.error("TESTING get_datas (inference): ERROR - The file wasn't found")
         raise err
 
 def test_perform_eda(perform_eda, eda_path, expected_eda_images):
@@ -214,8 +215,11 @@ def test_perform_data_processing(perform_data_processing,
     Output:
         None
     '''
+    # Initialize empty processing params dictionary
+    processing_params = dict()
     # Data Processing: Data Cleaning, Feature Engineering
     X, y = perform_data_processing(pytest.df,
+                                   processing_params,
                                    response=response,
                                    artifact_path=artifact_path,
                                    train=True)
@@ -260,10 +264,10 @@ def test_perform_data_processing(perform_data_processing,
         logging.error("TESTING perform_data_processing: ERROR - Not all columns in the processed dataset are numerical!")
         raise err
 
-    # Load processing parameters
-    processing_params = dict()
+    # Load processing parameters (initialized as empty in the beginning)
     try:
-        processing_params = joblib.load(join(artifact_path, expected_artifact))
+        #processing_params = joblib.load(join(artifact_path, expected_artifact))
+        processing_params = load_processing_params(expected_artifact)
     except Exception as err:
         logging.error("TESTING perform_data_processing: ERROR - Processing parameters dictionary %s cannot be loaded", expected_artifact)
         raise err
@@ -275,6 +279,12 @@ def test_perform_data_processing(perform_data_processing,
     # - mean_imputer: correctly filled dictionary
     # - mode_imputer: correctly filled dictionary
     # - category_encoder: correctly filled dictionary
+    # We could still check:
+    # - mappings
+    # - cols_drop
+    # - cols_cat
+    # - cols_num
+    # - numerical_transformations
     try:
         assert processing_params["num_features"] == num_features
     except AssertionError as err:
