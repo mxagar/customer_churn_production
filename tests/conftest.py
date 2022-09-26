@@ -69,7 +69,9 @@ def results_path():
 @pytest.fixture
 def expected_artifact():
     '''Local name of the saved artifact'''
-    return 'processing_params.pkl'
+    #return 'processing_params.pkl'
+    return pytest.config_dict["processing_params_filename"]
+    # ./artifacts/processing_params.pkl
 
 @pytest.fixture
 def expected_eda_images():
@@ -109,9 +111,9 @@ def expected_result_images():
             'roc_plots.png']
 
 @pytest.fixture
-def import_data():
-    '''import_data function from churn_library'''
-    return cl.import_data
+def get_data():
+    '''get_data function from churn_library'''
+    return cl.get_data
 
 @pytest.fixture
 def run_setup():
@@ -142,6 +144,11 @@ def evaluate_models():
 def load_model_pipeline():
     '''load_model_pipeline function from churn_library'''
     return cl.load_model_pipeline
+
+@pytest.fixture
+def load_processing_params():
+    '''load_processing_params function from churn_library'''
+    return cl.load_processing_params
 
 @pytest.fixture
 def predict():
