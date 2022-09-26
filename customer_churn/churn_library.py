@@ -91,6 +91,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import PowerTransformer
+from sklearn.utils import resample
 
 from sklearn.model_selection import GridSearchCV
 
@@ -113,7 +115,7 @@ logging.basicConfig(
     # logger - time - level - our message
     format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 
-def import_data(pth, save_sample=True):
+def get_data(pth, save_sample=True):
     '''Returns dataframe for the CSV found at pth.
     For training save_sample=True; for inference save_sample=False.
     The previously saved data sample contains some entries of the training dataset
@@ -131,16 +133,23 @@ def import_data(pth, save_sample=True):
         # Save sample for testing inference
         if save_sample:
             pth_sample = pth.split('.csv')[0]+'_sample.csv'
-            data_sample = data.iloc[:10,:]
-            data_sample.to_csv(pth_sample,sep=',', header=True, index=False)
-        logging.info("import_data: SUCCESS!")
+            # Choose n_samples samples correctly stratified
+            # according to the target class(es)
+            data_sample = resample(df,
+                                   n_samples=100,
+                                   replace=False,
+                                   stratify=df['Attrition_Flag'],
+                                   random_state=0)
+            #data_sample = data.iloc[:10,:]
+            data_sample.to_csv(pth_sample, sep=',', header=True, index=False)
+        logging.info("get_data: SUCCESS!")
         return data
     except (FileNotFoundError, NameError):
         #print("File not found!")
-        logging.error("import_data: File not found: %s.", pth)
+        logging.error("get_data: File not found: %s.", pth)
     except IsADirectoryError:
         #print("File is a directory!")
-        logging.error("import_data: File is a directory.")
+        logging.error("get_data: File is a directory.")
 
     return None
 
@@ -203,12 +212,15 @@ def perform_eda(data, output_path):
     logging.info("perform_eda: SUCCESS!")
 
 def perform_data_processing(data,
+                            processing_params,
                             response="Churn",
                             artifact_path="./artifacts",
                             train=True):
     '''Performs basic Data Processing and Feature Engineering:
     - basic cleaning,
+    - mappings,
     - select/drop features,
+    - transform numericals,
     - encode categoricals,
     - data validation.
 
@@ -221,49 +233,70 @@ def perform_data_processing(data,
 
     Input:
             df (data frame): dataset
+            processing_params (object): dictionary with processing parameters
             response (string): string of response name
                 optional argument that could be used
                 for naming variables or index y column
-            artifact_path (string): path where artifacts are located
+            artifact_path (string): path where artifacts are located (processing params)
             train (bool): whether transformer fitting needs to be performed
     Output:
             X (data frame): X features
             y (data frame / series): y target
     '''
-    processing_params = dict()
-    if not train:
-        # Load dataset processing parameters from training
-        # - cols_cat
-        # - cols_num
-        # - num_features
-        # - mean_imputer
-        # - mode_imputer
-        # - category_encoder
-        try:
-            # Check models can be loaded
-            processing_params = joblib.load(artifact_path+'/processing_params.pkl')
-        except FileNotFoundError:
-            #print("The processing parameters from previous training not found!")
-            logging.error("perform_data_processing: The processing parameters from previous training not found.")
+    # processing_params: dict()
+    # - mappings
+    # - cols_drop
+    # - cols_cat
+    # - cols_num
+    # - num_features
+    # - mean_imputer
+    # - mode_imputer
+    # - numerical_transformations
+    # - category_encoder
 
+    # Mappings
+    # 1) Define/Get
+    mappings = dict()
+    if train:
+        # Mapping 1
+        map_col_1 = 'Attrition_Flag'
+        mapping_1 = {'Existing Customer':0, 'Attrited Customer':1} # New Churn variable (target): 1 Yes, 0 No
+        mappings[map_col_1] = mapping_1
+        # Mapping 2
+        # ...
+        # Save to processing parameters
+        processing_params['mappings'] = mappings
+    else:
+        mappings = processing_params['mappings']
+    # 2) Apply
+    for col, mapping in mappings:
+        try:
+            assert col in data.columns
+            data[col].replace(mapping, inplace=True)
+        except AssertionError as err:
+            #print(f"The df must contain the column '{col}'.")
+            logging.error("perform_data_processing: The df must contain the column %s.", col)
+            raise err
+        
     # New Churn variable (target): 1 Yes, 0 No
     col_org_response = 'Attrition_Flag'
-    response_value_org_negative = "Existing Customer"
     try:
-        assert col_org_response in data.columns
-        data[response] = data[col_org_response].apply(
-            lambda val: 0 if val == response_value_org_negative else 1)
-    except AssertionError as err:
-        #print(f"The df must contain the column '{col_org_response}'.")
-        logging.error("perform_data_processing: The df must contain the column %s.", col_org_response)
-        raise err
+        data[response] = data[col_org_response]
     except KeyError as err:
         #print("Response key must be a string!")
-        logging.error("perform_data_processing: Response key must be a string.")
+        logging.error("perform_data_processing: Response key (target) must be a string.")
         raise err
 
     # Drop unnecessary columns
-    cols_drop = [col_org_response, 'Unnamed: 0', 'CLIENTNUM'] # , response]
+    # 1) Define/Get
+    cols_drop = []
+    if train:
+        # Maybe we can read this from the config.yaml
+        cols_drop = ['Attrition_Flag', 'Unnamed: 0', 'CLIENTNUM'] # , response]
+        processing_params['cols_drop'] = cols_drop
+    else:
+        cols_drop = processing_params['cols_drop']
+    # 2) Apply
     try:
         for col in cols_drop:
             data.drop(col, axis=1, inplace=True)
@@ -280,8 +313,8 @@ def perform_data_processing(data,
     # Automatically detect numerical columns
     cols_num = list(data.select_dtypes(['int64','float64']).columns)
 
+    # Persist categorical and numerical column names or check
     if train:
-        # Persist categorical and numerical column names
         processing_params['cols_cat'] = cols_cat
         processing_params['cols_num'] = cols_num
     else:
@@ -301,8 +334,8 @@ def perform_data_processing(data,
 
     # Handle missing values
     # - target: remove entries is target is NA
-    # - numerical: mean
-    # - categorical: mode
+    # - numerical: impute mean
+    # - categorical: impute mode
     data.dropna(subset=[response], axis=0, inplace=True)
     if train:
         # Create imputers, fit, transform data and persist
@@ -318,6 +351,27 @@ def perform_data_processing(data,
         mode_imputer = processing_params['mode_imputer']
         data = mean_imputer.transform(data)
         data = mode_imputer.transform(data)
+
+    # Transform numerical values if they are very skewed
+    # Rule of thumb: abs(skew) > 0.75 -> apply (power) transformation
+    numerical_transformations = dict()
+    if train:
+        for col in cols_num:
+            if abs(data[col].skew()) > 0.75:
+                pt = PowerTransformer('yeo-johnson', standardize=False)
+                data[col] = pt.fit_transform(data[col].values.reshape(-1,1))
+                numerical_transformations[col] = pt
+        processing_params['numerical_transformations'] = numerical_transformations
+    else:
+        numerical_transformations = processing_params['numerical_transformations']
+        for col, pt in numerical_transformations.items():
+            try:
+                assert col in data.columns
+                data[col] = pt.transform(data[col].values.reshape(-1,1))
+            except AssertionError as err:
+                #print(f"The df must contain the column '{col}'.")
+                logging.error("perform_data_processing: The df must contain the column %s.", col)
+                raise err
 
     # Encode categorical variables as category ratios
     cols_cat_encoded = []
@@ -370,11 +424,14 @@ def perform_data_processing(data,
 
     if train:
         # Persist dataset processing parameters from training
+        # - mappings
+        # - cols_drop
         # - cols_cat
         # - cols_num
         # - num_features
         # - mean_imputer
         # - mode_imputer
+        # - numerical_transformations
         # - category_encoder
         joblib.dump(processing_params, artifact_path+'/processing_params.pkl')
 
@@ -544,14 +601,6 @@ def train_models(X_train,
         ("scaler", StandardScaler()),
         ("model", LogisticRegression(solver='liblinear', random_state=42, max_iter=3000))])
 
-    # Model 2: Random Forest Classifier
-    # Note: scaling is really not necessary for random forests...
-    # Polynomial features removed to plot feature importances
-    rf_pipe = Pipeline([
-        #("polynomial_features", PolynomialFeatures()),
-        ("scaler", StandardScaler()),
-        ("model", RandomForestClassifier(random_state=42))])
-
     # Grid Search: Logistic Regression (Model 1)
     # Since we use polynomial features,
     # we cannot easily plot feature importances in the current implementation
@@ -568,6 +617,14 @@ def train_models(X_train,
     t2 = time.time()
     #print(f"Logistic regression trained with grid search and cross validation in {t2-t1:.2f} sec.")
     logging.info("train_models: Logistic regression trained in %.2f secs.", t2-t1)
+
+    # Model 2: Random Forest Classifier
+    # Note: scaling is really not necessary for random forests...
+    # Polynomial features removed to plot feature importances
+    rf_pipe = Pipeline([
+        #("polynomial_features", PolynomialFeatures()),
+        ("scaler", StandardScaler()),
+        ("model", RandomForestClassifier(random_state=42))])
 
     # Grid Search: Random Forest (Model 2)
     params_grid_rf = {
@@ -660,6 +717,18 @@ def load_model_pipeline(model_path):
         logging.error("load_model_pipeline: Model pipeline not found: %s.", model_path)
         return None
 
+def load_processing_params(params_path):
+    '''Loads processing params from path.'''
+    try:
+        # Load processing params file and check this is successful
+        processing_params = joblib.load(params_path)
+        logging.info("load_processing_params: SUCCESS!")
+        return processing_params
+    except FileNotFoundError:
+        #print("Processing params file not found!")
+        logging.error("load_processing_params: Processing params file not found: %s.", params_path)
+        return None
+
 def predict(model_pipeline, X):
     '''Uses the model/pipeline to score the feature vectors.'''
     preds = model_pipeline.predict(X)
@@ -669,7 +738,7 @@ def predict(model_pipeline, X):
 def split(X, y):
     '''Splits X and y into train/test subsets.'''
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size= 0.3, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size= 0.3, stratify=y, random_state=42)
 
     return X_train, X_test, y_train, y_test
 
@@ -702,7 +771,7 @@ def run_training(config, produce_images=True):
     # is saved for testing inference
     DATASET_PATH = config["dataset_filename"] # "./data/bank_data.csv"
     print(f"\nLoading dataset...\t{DATASET_PATH}")
-    df = import_data(DATASET_PATH, save_sample=True)
+    df = get_data(DATASET_PATH, save_sample=True)
 
     if (produce_images):
         # Perform Exploratory Data Analysis (EDA)
@@ -718,7 +787,8 @@ def run_training(config, produce_images=True):
     print("\nPerforming Data Processing...")
     RESPONSE = config["response"] # "Churn" # Target name
     ARTIFACT_PATH = config["artifact_path"] # "./artifacts"
-    X, y = perform_data_processing(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=True)
+    processing_params = dict() # initialize as empty dictionary to be filled
+    X, y = perform_data_processing(df, processing_params, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=True)
 
     # Train/Test split
     print("\nPerforming Train/Test Split...")
@@ -763,10 +833,16 @@ def run_inference(config):
     '''
     print("\n### INFERENCE PIPELINE ###")
 
-    # Load sample dataset
+    # Load/get sample dataset
     DATASET_PATH = config["dataset_sample_filename"] # "./data/bank_data_sample.csv"
     print(f"\nLoading exemplary dataset...\t{DATASET_PATH}")
-    df = import_data(DATASET_PATH, save_sample=False)
+    df = get_data(DATASET_PATH, save_sample=False)
+
+    # Load processing parameters
+    # This will be done only once in online inferences    
+    PARAMS_FILENAME = config["processing_params_filename"] # "./artifacts/processing_params.pkl"
+    print(f"\nLoading processing params...\t{PARAMS_FILENAME}")
+    processing_params = load_processing_params(PARAMS_FILENAME)
 
     # Perform Feature Engineering
     # Artifacts like transformation objects, detected features & co.
@@ -775,9 +851,10 @@ def run_inference(config):
     print("\nPerforming Data Processing...")
     RESPONSE = config["response"] # "Churn" # Target name
     ARTIFACT_PATH = config["artifact_path"] # "./artifacts"
-    X, _ = perform_data_processing(df, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=False)
+    X, _ = perform_data_processing(df, processing_params, response=RESPONSE, artifact_path=ARTIFACT_PATH, train=False)
 
     # Load model pipeline
+    # This will be done only once in online inferences
     MODEL_FILENAME = config["inference_model_filename"] # "./models/random_forest_model_pipe.pkl"
     print(f"\nLoading model pipeline...\t{MODEL_FILENAME}")
     model_pipeline = load_model_pipeline(MODEL_FILENAME)
