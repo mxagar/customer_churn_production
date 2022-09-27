@@ -89,14 +89,16 @@ from sklearn.model_selection import train_test_split
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import PowerTransformer
+from sklearn.preprocessing import LabelEncoder
 from sklearn.utils import resample
 
 from sklearn.model_selection import GridSearchCV
 
-from sklearn.metrics import plot_roc_curve, classification_report
+from sklearn.metrics import plot_roc_curve, classification_report, roc_auc_score
 
 #from transformations import MeanImputer, ModeImputer, CategoryEncoder
 from .transformations import MeanImputer, ModeImputer, CategoryEncoder
@@ -135,10 +137,10 @@ def get_data(pth, save_sample=True):
             pth_sample = pth.split('.csv')[0]+'_sample.csv'
             # Choose n_samples samples correctly stratified
             # according to the target class(es)
-            data_sample = resample(df,
+            data_sample = resample(data,
                                    n_samples=100,
                                    replace=False,
-                                   stratify=df['Attrition_Flag'],
+                                   stratify=data['Attrition_Flag'],
                                    random_state=0)
             #data_sample = data.iloc[:10,:]
             data_sample.to_csv(pth_sample, sep=',', header=True, index=False)
@@ -146,7 +148,7 @@ def get_data(pth, save_sample=True):
         return data
     except (FileNotFoundError, NameError):
         #print("File not found!")
-        logging.error("get_data: File not found: %s.", pth)
+        logging.error("get_data: File not found: %s", pth)
     except IsADirectoryError:
         #print("File is a directory!")
         logging.error("get_data: File is a directory.")
@@ -155,6 +157,11 @@ def get_data(pth, save_sample=True):
 
 def perform_eda(data, output_path):
     '''Performs EDA on df and saves figures to the output_path folder.
+
+    Note that a real EDA is usually very manual.
+    A proper analysis is done in a research notebook.
+    This function collects the most important plots and evaluations
+    that emerge from the manual EDA.
 
     Input:
             df (pandas.DataFrame): dataset
@@ -183,30 +190,40 @@ def perform_eda(data, output_path):
     data['Churn'] = data['Attrition_Flag'].apply(lambda val:
                                                  0 if val == "Existing Customer" else 1)
     # Figure 1: Churn distribution (ratio)
+    figsize=(7,7)
     fig = plt.figure(figsize=figsize)
-    data['Churn'].hist()
+    #data['Churn'].hist()
+    data['Churn'].value_counts().plot(kind='bar')
+    plt.title('Target = Churn: Yes 1, No 0')
     fig.savefig(rootpath+'/churn_dist.png', dpi=dpi)
 
     # Figure 2: Age distribution
+    figsize=(15,7)
     fig = plt.figure(figsize=figsize)
     data['Customer_Age'].hist()
+    plt.title('Histogram of Customer_Age')
     fig.savefig(rootpath+'/age_dist.png', dpi=dpi)
 
     # Figure 3: Marital status distribution
+    figsize=(15,7)
     fig = plt.figure(figsize=figsize)
     data['Marital_Status'].value_counts('normalize').plot(kind='bar')
+    plt.title('Counts of categories in Marital_Status')
     fig.savefig(rootpath+'/marital_status_dist.png', dpi=dpi)
 
     # Figure 4: Total transaction count distribution
+    figsize=(15,7)
     fig = plt.figure(figsize=figsize)
-    # Show distributions of 'Total_Trans_Ct' and add a smooth curve
-    # obtained using a kernel density estimate
     sns.histplot(data['Total_Trans_Ct'], stat='density', kde=True)
+    plt.title('Distribution of Total_Trans_Ct')
     fig.savefig(rootpath+'/total_trans_ct_dist.png', dpi=dpi)
 
     # Figure 5: Correlations
+    figsize=(20,15)
     fig = plt.figure(figsize=figsize)
-    sns.heatmap(data.corr(), annot=False, cmap='Dark2_r', linewidths = 2)
+    #sns.heatmap(data.corr(), annot=False, cmap='Dark2_r', linewidths = 2)
+    sns.heatmap(data.corr(), annot=True, cmap='RdYlGn', fmt=".2f", linewidths = 2) # cmap='Dark2_r'
+    plt.title('Correlations of numerical columns')
     fig.savefig(rootpath+'/corr_heatmap.png', dpi=dpi)
 
     logging.info("perform_eda: SUCCESS!")
@@ -269,7 +286,7 @@ def perform_data_processing(data,
     else:
         mappings = processing_params['mappings']
     # 2) Apply
-    for col, mapping in mappings:
+    for col, mapping in mappings.items():
         try:
             assert col in data.columns
             data[col].replace(mapping, inplace=True)
@@ -277,7 +294,7 @@ def perform_data_processing(data,
             #print(f"The df must contain the column '{col}'.")
             logging.error("perform_data_processing: The df must contain the column %s.", col)
             raise err
-        
+
     # New Churn variable (target): 1 Yes, 0 No
     col_org_response = 'Attrition_Flag'
     try:
@@ -391,6 +408,10 @@ def perform_data_processing(data,
     # We cannot drop it beforehand because the encoding of the categoricals
     # needs to use y
     y = data[response]
+    # Make sure we have integers:
+    # LabelEncoder can convert all value to 1,0
+    le = LabelEncoder()
+    y = le.fit_transform(y)
     data.drop(response, axis=1, inplace=True)
 
     # Automatically detect numerical columns, AGAIN
@@ -467,6 +488,19 @@ def classification_report_image(y_train,
     y_train_preds_lr, y_train_preds_rf = y_train_preds
     y_test_preds_lr, y_test_preds_rf = y_test_preds
 
+    # Logistic regression model: Classification report
+    fig = plt.figure(figsize=figsize)
+    plt.text(0.01, 1.25, str('Logistic Regression Train'),
+             {'fontsize': 10}, fontproperties='monospace')
+    plt.text(0.01, 0.05, str(classification_report(y_train, y_train_preds_lr)), {
+             'fontsize': 10}, fontproperties='monospace')  # approach improved by OP -> monospace!
+    plt.text(0.01, 0.6, str('Logistic Regression Test'), {
+             'fontsize': 10}, fontproperties='monospace')
+    plt.text(0.01, 0.7, str(classification_report(y_test, y_test_preds_lr)), {
+             'fontsize': 10}, fontproperties='monospace')  # approach improved by OP -> monospace!
+    plt.axis('off')
+    fig.savefig(output_path+'/lr_classification_report.png', dpi=dpi)
+
     # Random forest model: Classification report
     fig = plt.figure(figsize=figsize)
     # plt.text(0.01, 0.05, str(model.summary()), {'fontsize': 12}) old approach
@@ -480,19 +514,6 @@ def classification_report_image(y_train,
              'fontsize': 10}, fontproperties='monospace')  # approach improved by OP -> monospace!
     plt.axis('off')
     fig.savefig(output_path+'/rf_classification_report.png', dpi=dpi)
-
-    # Logistic regression model: Classification report
-    fig = plt.figure(figsize=figsize)
-    plt.text(0.01, 1.25, str('Logistic Regression Train'),
-             {'fontsize': 10}, fontproperties='monospace')
-    plt.text(0.01, 0.05, str(classification_report(y_train, y_train_preds_lr)), {
-             'fontsize': 10}, fontproperties='monospace')  # approach improved by OP -> monospace!
-    plt.text(0.01, 0.6, str('Logistic Regression Test'), {
-             'fontsize': 10}, fontproperties='monospace')
-    plt.text(0.01, 0.7, str(classification_report(y_test, y_test_preds_lr)), {
-             'fontsize': 10}, fontproperties='monospace')  # approach improved by OP -> monospace!
-    plt.axis('off')
-    fig.savefig(output_path+'/lr_classification_report.png', dpi=dpi)
 
     logging.info("classification_report_image: SUCCESS!")
 
@@ -512,14 +533,14 @@ def roc_curve_plot(models, X_test, y_test, output_path):
     figsize = (15, 8)
 
     # Unpack models
-    lrc, rfc = models # lrc, cv_rfc.best_estimator_
+    lrc, rfc, _ = models # lrc, cv_rfc.best_estimator_
 
     # ROC Plots
     fig = plt.figure(figsize=figsize)
     ax = plt.gca()
-    lrc_plot = plot_roc_curve(lrc, X_test, y_test)
-    rfc_plot = plot_roc_curve(rfc, X_test, y_test, ax=ax, alpha=0.8)
-    lrc_plot.plot(ax=ax, alpha=0.8)
+    lrc_plot = plot_roc_curve(lrc, X_test, y_test, name="Logistic Regression")
+    rfc_plot = plot_roc_curve(rfc, X_test, y_test, ax=ax, alpha=0.8, name="Random Forest")
+    lrc_plot.plot(ax=ax, alpha=0.8, name="Logistic Regression")
     fig.savefig(output_path+'/roc_plots.png', dpi=dpi)
 
     logging.info("roc_curve_plot: SUCCESS!")
@@ -593,6 +614,7 @@ def train_models(X_train,
     Output:
             models (objects tuple): best trained models, using grid search and cross-validation
     '''
+
     # Model 1: Logistic Regression
     # Note: if the default solver='lbfgs' fails to converge, use another
     # https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
@@ -609,7 +631,7 @@ def train_models(X_train,
         'model__penalty': ['l1', 'l2'],
         'model__C': np.geomspace(1e-3, 10, 6) # logarithmic jumps
     }
-    lr_pipe_cv = GridSearchCV(estimator=lr_pipe, param_grid=params_grid_lr, cv=5)
+    lr_pipe_cv = GridSearchCV(estimator=lr_pipe, param_grid=params_grid_lr, cv=5, scoring='roc_auc')
     t1 = time.time()
     lr_pipe_cv.fit(X_train, y_train)
     # Get best logistic regression model/pipeline
@@ -634,7 +656,7 @@ def train_models(X_train,
         'model__max_depth': [4, 5, 100],
         'model__criterion': ['gini', 'entropy']
     }
-    rf_pipe_cv = GridSearchCV(estimator=rf_pipe, param_grid=params_grid_rf, cv=5)
+    rf_pipe_cv = GridSearchCV(estimator=rf_pipe, param_grid=params_grid_rf, cv=5, scoring='roc_auc')
     t1 = time.time()
     rf_pipe_cv.fit(X_train, y_train)
     # Get best random forest model/pipeline
@@ -643,11 +665,51 @@ def train_models(X_train,
     #print(f"Random forest trained with grid search and cross validation in {t2-t1:.2f} sec.")
     logging.info("train_models: Random forest trained in %.2f secs.", t2-t1)
 
-    # Save best models/pipelines
-    joblib.dump(lr_pipe_cv_best, model_output_path+'/logistic_regression_model_pipe.pkl')
-    joblib.dump(rf_pipe_cv_best, model_output_path+'/random_forest_model_pipe.pkl')
+    # Model 3: Support Vector Classifier
+    # Note: scaling is really not necessary for random forests...
+    # Polynomial features removed to plot feature importances
+    sv_pipe = Pipeline([
+        ("polynomial_features", PolynomialFeatures()),
+        ("scaler", StandardScaler()),
+        ("model", SVC(random_state=42))])
 
-    models = (lr_pipe_cv_best, rf_pipe_cv_best)
+    # Grid Search: Support Vector Machine (Model 3)
+    params_grid_sv = {
+        'polynomial_features__degree': [1, 2],
+        'model__kernel': ['poly', 'rbf'],
+        'model__gamma': ['auto', 'scale'],
+        'model__C': [0.01, 0.3, 10.0]
+    }
+    sv_pipe_cv = GridSearchCV(estimator=sv_pipe, param_grid=params_grid_sv, cv=5, scoring='roc_auc')
+    t1 = time.time()
+    sv_pipe_cv.fit(X_train, y_train)
+    # Get best support vector machine model/pipeline
+    sv_pipe_cv_best = sv_pipe_cv.best_estimator_
+    t2 = time.time()
+    #print(f"Support vector machine trained with grid search and cross validation in {t2-t1:.2f} sec.")
+    logging.info("train_models: Support vector machine trained in %.2f secs.", t2-t1)
+
+    # Pack models
+    grids = (lr_pipe_cv, rf_pipe_cv, sv_pipe_cv)
+    models = (lr_pipe_cv_best, rf_pipe_cv_best, sv_pipe_cv_best)
+    model_names = ['logistic_regression_model_pipe.pkl',
+                   'random_forest_model_pipe.pkl',
+                   'support_vector_model_pipe.pkl']
+
+    # Training summary report + Save best models/pipelines
+    with open(model_output_path+'/training_report.txt', 'w') as f:
+        f.write("Training report: \n")
+        for i in range(len(models)):
+            # Save report
+            f.write(f"\nModel: {model_names[i]}:\n")
+            f.write(f"- Best params: {str(grids[i].best_params_)}:\n")
+            f.write(f"- Best ROC AUC (train split with CV): {str(grids[i].best_score_)}:\n")
+            # Save model
+            joblib.dump(models[i], model_output_path+'/'+model_names[i])
+
+    #joblib.dump(lr_pipe_cv_best, model_output_path+'/logistic_regression_model_pipe.pkl')
+    #joblib.dump(rf_pipe_cv_best, model_output_path+'/random_forest_model_pipe.pkl')
+    #joblib.dump(sv_pipe_cv_best, model_output_path+'/support_vector_model_pipe.pkl')
 
     logging.info("train_models: SUCCESS!")
 
@@ -674,7 +736,7 @@ def evaluate_models(X_train,
             None
     '''
     # Unpack models
-    lrc, rfc = models
+    lrc, rfc, _ = models
 
     # Predict target for train & test features
     y_train_preds_rf = rfc.predict(X_train)
@@ -839,7 +901,7 @@ def run_inference(config):
     df = get_data(DATASET_PATH, save_sample=False)
 
     # Load processing parameters
-    # This will be done only once in online inferences    
+    # This will be done only once in online inferences
     PARAMS_FILENAME = config["processing_params_filename"] # "./artifacts/processing_params.pkl"
     print(f"\nLoading processing params...\t{PARAMS_FILENAME}")
     processing_params = load_processing_params(PARAMS_FILENAME)
