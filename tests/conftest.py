@@ -100,7 +100,8 @@ def num_features():
 def expected_models():
     '''List of stored model names'''
     return ['logistic_regression_model_pipe.pkl',
-            'random_forest_model_pipe.pkl']
+            'random_forest_model_pipe.pkl',
+            'support_vector_model_pipe.pkl']
 
 @pytest.fixture
 def expected_result_images():
