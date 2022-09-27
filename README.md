@@ -8,7 +8,7 @@ Note that not all aspects necessary in a ML worklflow are covered:
 
 - The Exploratory Data Analysis (EDA) and Feature Engineering (FE) done during the data processing are very simple.
 - The generated artifacts are not tracked or versioned (e.g., model-pipelines, processed data, etc.)
-- No thorough deployment nor API are created, although [docker](https://www.docker.com) containerization is introduced.
+- No thorough deployment nor API are created, although [Docker](https://www.docker.com) containerization is introduced.
 - etc.
 
 If you are interested in some of the aforementioned topics, you can visit other of my boilerplate projects listed in the section [Interesting Links](#interesting-links). However, let me reiterate the leitmotiv of this repository: **production-level data science code with as few tools as possible** :smile:
@@ -37,12 +37,14 @@ In the project, credit card customers that are most likely to churn are identifi
 A first version of the data analysis and modeling is provided in the notebook [churn_notebook.ipynb](churn_notebook.ipynb). As mentioned, **the main goal of the project is to transform that notebook content into a production ready package, applying clean code principles or tools**:
 
 - Readable, simple, concise code
-- PEP8 conventions, checked with `pylint` and `autopep8`
-- Refactoring: Modular and efficient code
-- Documentation at different stages: code, `README` files, etc.
-- Error handling
-- Testing with `pytest`
-- Logging
+- PEP8 conventions applied, checked with `pylint` and `autopep8`
+- Modular and efficient code, with Object-Oriented patterns
+- Documentation provided at different stages: code, `README` files, etc.
+- Error/exception handling
+- Execution and data testing with `pytest`
+- Logging implemented during production execution and testing
+- Installable python package
+- Basic containerization with Docker
 
 The used [Credit Card Customers dataset from Kaggle](https://www.kaggle.com/datasets/sakshigoyal7/credit-card-customers/code) has the following properties:
 
@@ -108,18 +110,18 @@ The executable or `main` function is provided in [`main.py`](main.py); this scri
 1. `run_training()`: it performs the EDA, the data processing and the data modeling, and it generates the inference artifacts (the model/pipeline).
 2. `run_inference()`: it shows how the inference artifacts need to be used to perform a prediction; an exemplary dataset sample created during the training is used.
 
-The following diagram shows the workflow
+The following diagram shows the workflow:
 
 ![Pipeline Diagram](./pics/pipeline_diagram.png)
 
 A central property of the package is that `run_training()` and `run_inference()` share the function `perform_data_processing()`. When `perform_data_processing()` is executed in `run_training()`, it generates the processing parameters and stores them to disk. In contrast, when `perform_data_processing()` is executed in `run_inference()`, it loads those stored parameters to perform the data processing for the inference.
 
-Note that `run_inference()` is not very useful in its current state, because of the following limitations:
+Note that the implemented `run_inference()` is exemplary and it needs to be adapted:
 
-- It reads a sample dataset from a `CSV` file, instead of waiting for requests.
-- It loads the data processing parameters and the model pipeline every time new data needs to be scored, instead of keeping them model in memory.
+- Currently, it is triggered manually and it scores a sample dataset from a `CSV` file offline; instead, we should wait for external requests that feed new data to be scored.
+- The data processing parameters and the model should be loaded once in the beginning (hence, the dashed box) and used every time new data is scored.
 
-Those limitations are to be fixed when deploying the model, which is not in the scope of this repository; in other words, I decided to leave those loose ends in order to adapt the boilerplate to particular deployment tools. However, containerization with [docker](https://www.docker.com) is briefly shown in [Docker Image](#docker-image).
+Those loose ends are to be tied when deploying the model, since their final form depends on the deployment technologies adopted. Even though containerization with [docker](https://www.docker.com) is briefly shown in the section [Docker Image](#docker-image), deployment is not really in the scope of this repository.
 
 ## How to Use This
 ### Running the Package
@@ -152,7 +154,7 @@ Note that the EDA and the model evaluation are optional and can be controlled wi
 python main.py --produce_images 0
 ```
 
-Switching off EDA and evaluation is important for the Docker container: saving matplotlib figures in a container requires a more sophisticated setup than the one explained in [Docker Image](#Docker-Image).
+Switching off EDA and evaluation is important for the Docker container: saving matplotlib figures in a container requires a more sophisticated setup than the one explained in the section [Docker Image](#Docker-Image).
 
 Optionally, you can install the package on your environment:
 
@@ -244,8 +246,12 @@ If you are interested in any of those topics, please visit the section [Interest
 - [x] Update `README.md` with new contents: new files, new execution commands, etc.
 - [x] Draw new sequence diagram.
 - [x] Create a docker image.
+- [x] Explain the columns from the dataset in [`data/README.md`](data/README.md).
+- [x] Add function `load_processing_parameters()` for `run_inference()` before `perform_data_processing()`; that way, we pass the parameters to the processing function, the same way we pass the model-pipeline to `predict()`.
+- [x] Address the fact that `load_processing_parameters()` and `load_model_pipeline()` should be run only once at the beginning.
 - [ ] **Further parametrize all hard-coded variables from `conftest.py` and include them in `config.yaml`; a `config` object should be passed to the functions in `churn_library.py` to avoid hard-coding.**
-- [ ] Explain the columns from the dataset in [`data/README.md`](data/README.md).
+- [ ] Especially for classification problems, the training/inference pipeline should be able to deal with imbalanced datasets (e.g., performing trainings with over/undersampling variations in addition to the parameter search); that aspect is not covered yet.
+- [ ] Feature selection could be added as a step; however, that probably means re-defining the spot where the `PolynomialFeatures` are applied now.
 - [ ] Further re-factor functions; e.g., some EDA plot generations contain repeated computations that can be parametrized.
 - [ ] Work towards `pylint` score of 10/10. However, note that some variable names were chosen to be non-PEP8-conform due to their popular use in the field (e.g., `X_train`).
 
