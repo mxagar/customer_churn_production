@@ -12,6 +12,7 @@ models
 artifacts
 *.log
 data/*_sample.csv
+data/BankChurners.csv
 *.egg*
 build
 docker_commands_summary.txt
