@@ -65,7 +65,6 @@ import os
 from os import listdir
 from os.path import isfile, join
 import logging
-from customer_churn.churn_library import load_processing_params
 import joblib
 # Without logging and with fixtures in conftest.py
 # we'd need to import pytest only in conftest.py
@@ -196,6 +195,7 @@ def test_perform_eda(perform_eda, eda_path, expected_eda_images):
     logging.info("TESTING perform_eda: SUCCESS")
 
 def test_perform_data_processing(perform_data_processing,
+                                 load_processing_params,
                                  split,
                                  num_features,
                                  artifact_path,
@@ -205,6 +205,7 @@ def test_perform_data_processing(perform_data_processing,
 
     Input:
         perform_data_processing (function object): function to be tested
+        load_processing_params (function object): function used
         split (function object): split dataset
         num_features (function object): fixture function which returns the number
             of features in the final dataset
