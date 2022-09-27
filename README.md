@@ -51,7 +51,7 @@ The used [Credit Card Customers dataset from Kaggle](https://www.kaggle.com/data
 - Original dataset size: 22 columns, 10127 data points.
 - It consists of categorical and numerical features of clients which churn (cease to be clients) or not; that churn status is the binary classification target used for training, encoded as the feature `Attrition_Flag`.
 - Number of features after data processing is carried out: 19.
-- Modeling used on the data: logistic regression and random forests with grid search.
+- Modeling used on the data: logistic regression, support vector machines and random forests with grid search.
 
 More details on the dataset can be found in [`data/README.md`](data/README.md).
 
@@ -91,7 +91,7 @@ All the research work of the project is contained in the notebook [`churn_notebo
 - Dataset loading 
 - Exploratory Data Analysis (EDA) and Data Cleaning
 - Feature Engineering (FE)
-- Training: Random Forest and Logistic Regression models are fit and the models are persisted as pickles.
+- Training: Logistic Regression, Support Vector Machine and Random Forest models are fit and persisted as pickles.
 - Generation of classification report plots.
 
 The code from [`churn_notebook.ipynb`](churn_notebook.ipynb) has been transformed to create the package [`customer_churn`](customer_churn), which contains two files:
@@ -103,12 +103,12 @@ Additionally, a [`tests`](tests) folder is provided, which contains [`test_churn
 
 The executable or `main` function is provided in [`main.py`](main.py); this script imports the package [`customer_churn`](customer_churn) and runs three functions from [`churn_library.py`](customer_churn/churn_library.py):
 
-0. `run_setup()`: the configuration file [`config.yaml`](config.yaml) is loaded and auxiliary folders are created, if not there yet:
+- `run_setup()`: the configuration file [`config.yaml`](config.yaml) is loaded and auxiliary folders are created, if not there yet:
    - `images`: it will contain the images of the EDA and the model evaluation.
    - `models`: it will contain the inference models/pipelines as serialized pickles.
    - `artifacts`: it will contain the data processing parameters created during the training and required for the inference, serialized as pickles.
-1. `run_training()`: it performs the EDA, the data processing and the data modeling, and it generates the inference artifacts (the model/pipeline).
-2. `run_inference()`: it shows how the inference artifacts need to be used to perform a prediction; an exemplary dataset sample created during the training is used.
+- `run_training()`: it performs the EDA, the data processing and the data modeling, and it generates the inference artifacts (the model/pipeline).
+- `run_inference()`: it shows how the inference artifacts need to be used to perform a prediction; an exemplary dataset sample created during the training is used.
 
 The following diagram shows the workflow:
 

@@ -6,18 +6,18 @@ Source: [Credit Card Customers](https://www.kaggle.com/datasets/sakshigoyal7/cre
 
 Columns in the raw dataset (22 in total):
 
-- **Target**
+- **Target** (renamed to `Churn = {0,1}`)
   - `Attrition_Flag`: `Existing Customer`, `Attrited Customer` (churn).
-- **Dropped**:
+- **Dropped** (irrelevant information)
   - `Unnamed: 0`: copy of index (not present in the current Kaggle dataset).
   - `CLIENTNUM`: client ID.
-- **Categorical**:
+- **Categorical** (encoded as churn ratios per category level)
   - `Gender`: `F`, `M`.
   - `Education_Level`: `High School`, `Graduate`, etc.
   - `Marital_Status`: `Married`, `Single`, `Divorced`, `Unknown`
   - `Income_Category`: annual income range: `< $40K`, `$40K - 60K`, `$60K - $80K`, `$80K-$120K`, `> 120k`
   - `Card_Category`: type of card/product: `Blue`, `Silver`, `Gold`, `Platinum`
-- **Numerical**
+- **Numerical** (transformed if the absolute skew is larger than 0.75)
   - `Customer_Age`: customer's age in years (quite normal).
   - `Dependent_count`: number of dependents (quite normal).
   - `Months_on_book`: period of relationship with bank (normal with peak).
