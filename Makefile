@@ -5,3 +5,4 @@ clean:
 	rm -f data/*_sample.csv
 	rm -fr build
 	rm -fr *.egg*
+	rm -fr __pycache__
