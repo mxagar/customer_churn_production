@@ -2,7 +2,7 @@
 
 This repository contains a project that analyzes and predicts **Customer Churn** using the [Credit Card Customers](https://www.kaggle.com/datasets/sakshigoyal7/credit-card-customers/code) dataset from [Kaggle](https://www.kaggle.com/). 
 
-Data analysis, modeling and inference pipelines are implemented in the project to end up with an interpretable model that is also able to predict customer churn. However, the focus of the project are neither the business case nor the analysis and modeling techniques; instead, **the goal is to provide with a boilerplate that shows how to transform a research notebook into a development/production environment code using as few additional tools as possible**. Concretely, the research notebook [churn_notebook.ipynb](churn_notebook.ipynb) is transformed into a python package contained in [customer_churn](customer_churn).
+Data analysis, modeling and inference are implemented in the project to end up with an interpretable model that is also able to predict customer churn. However, the focus of the project are neither the business case nor the analysis and modeling techniques; instead, **the goal is to provide with a boilerplate that shows how to transform a research notebook into a development/production environment code using as few additional tools as possible**. Concretely, the research notebook [churn_notebook.ipynb](churn_notebook.ipynb) is transformed into a python package contained in [customer_churn](customer_churn).
 
 Note that not all aspects necessary in a ML worklflow are covered:
 
@@ -11,7 +11,7 @@ Note that not all aspects necessary in a ML worklflow are covered:
 - No thorough deployment nor API are created, although [Docker](https://www.docker.com) containerization is introduced.
 - etc.
 
-If you are interested in some of the aforementioned topics, you can visit other of my boilerplate projects listed in the section [Interesting Links](#interesting-links). However, let me reiterate the leitmotiv of this repository: **production-level data science code with as few tools as possible** :smile:
+In other words, you ca re-use the code of this repository as a template, but for small projects only. If you something bigger in your hands and are interested in some of the aforementioned topics, you can visit other of my boilerplate projects listed in the section [Interesting Links](#interesting-links). However, let me reiterate the leitmotiv of this repository: **production-level data science code with as few tools as possible** :smile:
 
 The starter code comes from a [Udacity Machine Learning DevOps Engineer Nanodegree](https://www.udacity.com/course/machine-learning-dev-ops-engineer-nanodegree--nd0821) project, although the initial status was substantially changed.
 
@@ -25,7 +25,7 @@ Overview of contents:
     - [Testing the Package](#testing-the-package)
     - [Good Ol' `make`](#good-ol-make)
     - [Docker Image](#docker-image)
-  - [Limitations of This Boilerplate](#limitations-of-this-boilerplate)
+  - [Limitations and Alternatives of This Boilerplate](#limitations-and-alternatives-of-this-boilerplate)
   - [Possible Improvements](#possible-improvements)
   - [Interesting Links](#interesting-links)
   - [Authorship](#authorship)
@@ -225,13 +225,15 @@ docker container run -it --rm --name customer_churn_app customer_churn_app
 
 As explained in [Running the Package](#running-the-package), the EDA and the model evaluation are switched off for the docker image, because saving matplotlib images requires a more sophisticated setup than the one provided.
 
-## Limitations of This Boilerplate
+## Limitations and Alternatives of This Boilerplate
 
-- No tracking of datasets / models / experiments / artifacts is done. Doing that is **fundamental** if we want to scale, and it implies using additional tools, such as [Weights and Biases](https://wandb.ai).
-- Maybe all the steps could be re-written in an Object Oriented style and packed in to a [Scikit-Learn](https://scikit-learn.org/stable/) `Pipeline`. However, I think that increases the complexity; I prefer to use a mixed approach in which transformations are defined in classes, while they are applied in a function. Additionally, that makes the boilerplate easier to adapt to concrete applications and frameworks other than [Scikit-Learn](https://scikit-learn.org/stable/).
+- No tracking of datasets / models / experiments / artifacts is done. Doing that is **fundamental** if we want to scale, and it implies using additional tools, such as [Weights and Biases](https://wandb.ai). I have another boilerplate where that is done: [music_genre_classification](https://github.com/mxagar/music_genre_classification).
+- This boilerplate works for small datasets/projects, which are not that uncommon in small/medium enterprises; in my experience, its structure is easy to understand, implement and adapt. However, as the complexity increases, it is recommended to apply these changes to the architecture:
+  - All data processing steps should be written in an Object Oriented style and packed into a [Scikit-Learn](https://scikit-learn.org/stable/) `Pipeline` (or similar), as done with `transformations.py`.
+  - Any data processing that must be applied to new data should be integrated in the inference pipeline generated in `train_models()`; that means that we should integrate most of the content in `perform_data_processing()` as a `Pipeline` in `train_models()`. Thus, `perform_data_processing()` would be reduced to basic tasks related to cleaning (e.g., duplicate removal) and checking.
 - No serving via an API is discussed.
 
-If you are interested in any of those topics, please visit the section [Interesting Links](#interesting-links).
+Please, visit the section [Interesting Links](#interesting-links), where I will list further resources related to those points.
 
 ## Possible Improvements
 
