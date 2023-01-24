@@ -261,7 +261,9 @@ Please, visit the section [Interesting Links](#interesting-links), where I will 
 
 - Guide on EDA, Data Cleaning and Feature Engineering: [eda_fe_summary](https://github.com/mxagar/eda_fe_summary).
 - A boilerplate for reproducible (tracked) ML pipelines with MLflow and Weights & Biases which uses a music genre classification dataset from Spotify: [music_genre_classification](https://github.com/mxagar/music_genre_classification).
+- If you are interested in the automated deployment of production-ready ML pipelines packaged in APIs, check my example repository [census_model_deployment_fastapi](https://github.com/mxagar/census_model_deployment_fastapi).
 - My notes on the [Udacity Machine Learning DevOps Engineering Nanodegree](https://www.udacity.com/course/machine-learning-dev-ops-engineer-nanodegree--nd0821), which features more MLOps content: [mlops_udacity](https://github.com/mxagar/mlops_udacity).
+
 ## Authorship
 
 Mikel Sagardia, 2022.  
